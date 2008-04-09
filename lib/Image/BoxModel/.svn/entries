@@ -1,0 +1,57 @@
+8
+
+dir
+3
+https://image-boxmodel.googlecode.com/svn/trunk/lib/Image/BoxModel
+https://image-boxmodel.googlecode.com/svn
+
+
+
+2008-04-09T18:32:37.705584Z
+3
+matthias@puffin.ch
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+f5b2bfa6-444a-0410-8c20-0be2ac011282
+
+Text.pm
+file
+
+
+
+
+2008-04-09T18:24:23.000000Z
+1ea4cf15cfe546abc7399915d9e8bb66
+2008-04-09T18:32:37.705584Z
+3
+matthias@puffin.ch
+has-props
+
+Lowlevel.pm
+file
+
+
+
+
+2008-04-09T18:24:15.000000Z
+9527681a85d62d730096a3c3f9225b1d
+2008-04-09T18:32:37.705584Z
+3
+matthias@puffin.ch
+has-props
+
+Backend
+dir
+

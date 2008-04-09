@@ -1,0 +1,65 @@
+K 25
+svn:wc:ra_dav:version-url
+V 30
+/svn/!svn/ver/1/trunk/examples
+END
+10_text_demo_IM.png
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/1/trunk/examples/10_text_demo_IM.png
+END
+10_text_demo.pl
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/!svn/ver/1/trunk/examples/10_text_demo.pl
+END
+01_hello_world_IM.png
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/1/trunk/examples/01_hello_world_IM.png
+END
+01_hello_world.pl
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/1/trunk/examples/01_hello_world.pl
+END
+run_all_examples.pl
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/1/trunk/examples/run_all_examples.pl
+END
+10_text_demo_GD.png
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/1/trunk/examples/10_text_demo_GD.png
+END
+01_hello_world_GD.png
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/1/trunk/examples/01_hello_world_GD.png
+END
+02_floatbox_IM.png
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/1/trunk/examples/02_floatbox_IM.png
+END
+02_floatbox.pl
+K 25
+svn:wc:ra_dav:version-url
+V 45
+/svn/!svn/ver/1/trunk/examples/02_floatbox.pl
+END
+02_floatbox_GD.png
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/1/trunk/examples/02_floatbox_GD.png
+END

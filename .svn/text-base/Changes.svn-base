@@ -1,8 +1,5 @@
 Revision history for Perl extension Image::BoxModel:
 
-0.08	Mit Apr 9 2008 
-	- repair pod
-
 0.07	Mon Apr 7 2008 
 	- rename into Image::BoxModel, update all files & structure
 

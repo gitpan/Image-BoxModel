@@ -3,7 +3,7 @@ package Image::BoxModel;
 #~ use 5.008008;
 use warnings;
 use strict;
-our $VERSION = '0.08';
+our $VERSION = '0.07';
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
 use Image::BoxModel::Text;		#Automatically makes a fitting box and puts text on it. Uses Lowlevel methods
@@ -46,8 +46,8 @@ sub new{
 	#the "new-constructors need to be moved into ::Backend. Someday.
 	
 	if ($image -> {lib} eq "IM"){
-		require Image::Magick;
-		require Image::BoxModel::Backend::IM;
+		use Image::Magick;
+		use Image::BoxModel::Backend::IM;
 		push @ISA, "Image::BoxModel::Backend::IM";
 		
 		$image->{IM} = new Image::Magick; 
@@ -55,8 +55,8 @@ sub new{
 		$image->{IM} -> Read("xc:$image->{background}"); 
 	}
 	elsif ($image -> {lib} eq "GD"){
-		require GD;
-		require Image::BoxModel::Backend::GD;
+		use GD;
+		use Image::BoxModel::Backend::GD;
 		push @ISA, "Image::BoxModel::Backend::GD";
 		
 		$image->{GD} = new GD::Image($image->{width}+1,$image->{height}+1);

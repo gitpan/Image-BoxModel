@@ -1,0 +1,89 @@
+8
+
+dir
+3
+https://image-boxmodel.googlecode.com/svn/trunk
+https://image-boxmodel.googlecode.com/svn
+
+
+
+2008-04-09T18:32:37.705584Z
+3
+matthias@puffin.ch
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+f5b2bfa6-444a-0410-8c20-0be2ac011282
+
+t
+dir
+
+lib
+dir
+
+MANIFEST
+file
+
+
+
+
+2008-04-07T18:55:28.000000Z
+3e9a77b0a13be711a9cb892e52d4e8dc
+2008-04-07T09:44:34.867454Z
+1
+matthias@puffin.ch
+has-props
+
+Makefile.PL
+file
+
+
+
+
+2008-04-07T18:55:28.000000Z
+0167bba24dffc34a251a982d84d3b940
+2008-04-07T09:44:34.867454Z
+1
+matthias@puffin.ch
+has-props
+
+Changes
+file
+
+
+
+
+2008-04-07T18:55:28.000000Z
+8760f4a5662f2935bfb121ccab318f02
+2008-04-07T09:44:34.867454Z
+1
+matthias@puffin.ch
+has-props
+
+README
+file
+
+
+
+
+2008-04-07T18:55:28.000000Z
+18a321b5316931c4d8b339442a4ccb5f
+2008-04-07T09:44:34.867454Z
+1
+matthias@puffin.ch
+has-props
+
+examples
+dir
+
