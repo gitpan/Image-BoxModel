@@ -5,7 +5,7 @@ use strict;
 
 =head1 NAME
 
-Image::BoxModel - Module for defining boxes on an image and putting things on them
+Image::BoxModel::Text - Text functions for Image::BoxModel
 
 =head1 SYNOPSIS
 

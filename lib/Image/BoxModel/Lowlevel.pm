@@ -7,7 +7,7 @@ use POSIX;	#for ceil() in ::Box
 
 =head1 NAME
 
-Image::BoxModel - Module for defining boxes on an image and putting things on them
+Image::BoxModel::Lowlevel - Lowlevel functions for Image::BoxModel
 
 =head1 SYNOPSIS
 
@@ -331,11 +331,11 @@ Save the image to file. There is no error-checking at the moment if your chosen 
 
 #There is no Save here really, because it's in ::Backend::[library]
 
-=head3 Internal methods:
+=head2 Internal methods:
 
 (documentation for myself rather than the user)
 
-=head4 rotation
+=head3 rotation
 
 To rotate a given point by any point. It takes the angle in degrees, which is very comfortable to me. 
 If you want to rotate something, feel free to use it. :-)
@@ -363,7 +363,7 @@ sub rotation{
 	return $x, $y;
 }
 
-=head4 print_message
+=head3 print_message
 
 Checks if verbose is on and then prints messages.
  $image -> print_message("Text");

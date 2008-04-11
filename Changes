@@ -1,5 +1,8 @@
 Revision history for Perl extension Image::BoxModel:
 
+0.09	Fre Apr 11 2008 
+	- remove .svn from tar.gz
+
 0.08	Mit Apr 9 2008 
 	- repair pod
 

@@ -3,7 +3,7 @@ package Image::BoxModel;
 #~ use 5.008008;
 use warnings;
 use strict;
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
 use Image::BoxModel::Text;		#Automatically makes a fitting box and puts text on it. Uses Lowlevel methods
