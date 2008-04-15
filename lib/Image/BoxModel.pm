@@ -1,14 +1,15 @@
 package Image::BoxModel;	
 
-#~ use 5.008008;
+use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
 use Image::BoxModel::Text;		#Automatically makes a fitting box and puts text on it. Uses Lowlevel methods
+use Image::BoxModel::Chart;
 
-our @ISA = ("Image::BoxModel::Text", "Image::BoxModel::Lowlevel"); 
+our @ISA = ("Image::BoxModel::Text", "Image::BoxModel::Lowlevel", "Image::BoxModel::Chart"); 
 
 
 

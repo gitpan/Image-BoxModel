@@ -10,7 +10,15 @@ sub DrawRectangle{
 	my $image = shift;
 	my %p = @_;
 	
-	print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{color}, fill=>$p{color}) ;
+	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
+		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{color}, fill=>$p{color}) ;
+	}
+	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
+		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{border_color}, fill=>$p{fill_color}) ;
+	}
+	else{
+		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
+	}
 	$image -> print_message ("DrawRectangle with ",__PACKAGE__,"::DrawRectangle\n");
 }
 

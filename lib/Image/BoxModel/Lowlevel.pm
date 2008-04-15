@@ -199,10 +199,6 @@ sub FloatBox{
 	return
 }
 
-#########################
-# Get width & height of (rotated) text.
-#########################
-
 =head3 GetTextSize
 
 Get the boundig size of (rotated) text. Very useful to find out how big boxes need to be.
@@ -255,6 +251,65 @@ sub GetTextSize{
 		$most{bottom} = $_->{y} if ($_->{y} > $most{bottom});
 	}
 	return $most{right}- $most{left}, $most{bottom}-$most{top};	#return width and height
+}
+
+=head3 BoxSplit
+
+ $image => BoxSplit (box => "name_of_parent", orientation=> "[vertical|horizontal]", count => $number_of_little_boxes);
+
+Splits a box into "count" small boxes. This can be useful if you want to have spreadsheet-style segmentation.
+
+Naming of little boxes: parent_[number, counting from 0]
+
+In bitmap-land we only have integer-size-boxes. Therefore some boxes may be 1 pixel taller than others..
+
+Example:
+
+If the parent is "myBox", then the babies are named myBox_0, myBox_1, ...myBox_2635 (if you are crazy enough to have 2635 babies)
+
+I use it primarily for ::Charts, where axis-annotations and bars etc. are put into their small boxes. 
+This enables easy positioning of these elements, because the object knows the borders of its boxes. 
+You can for example center an element inside its box, which is much easier than calculating the exact position.
+
+=cut
+
+sub BoxSplit{
+	my $image = shift;
+	my %p = @_;
+	
+	#~ print "$_ -> $p{$_}\n" foreach keys %p;
+	
+	my $parent_size;	#because ::Box ignores the unused given dimension, we just set this to with or height of parent and feed it twice..
+	my $position;
+	if ($p{orientation} eq "vertical"){
+		$parent_size = $image -> {$p{box}}{height};
+		$position = "top";
+	}
+	elsif ($p{orientation} eq "horizontal"){
+		$parent_size = $image -> {$p{box}}{width};
+		$position = "left";
+	}
+	else{
+		die __PACKAGE__,": Wrong value of mandatory parameter 'orientation': $p{orientation}, should be [vertical|horizontal]. Die.";
+	}
+	
+	foreach (0.. $p{count}-1){	#baby-box No. 1 holds number 0..
+		my $baby_size = sprintf("%.0f", ($parent_size / ($p{count} - $_)));
+		print "baby-size: $baby_size\t baby-name: $p{box}_$_\n";
+		
+		$parent_size -= $baby_size;
+		my $debug_color = "blue" if ($_ % 2 == 0);
+		$debug_color = "red" if ($_ % 2 != 0);
+		$image -> Box (
+			resize => $p{box}, 
+			position =>$position, 
+			width=> $baby_size, 
+			height =>$baby_size, 
+			name=> "$p{box}_$_",
+			background => $debug_color
+		);
+	}
+	return;	#nothing at the moment
 }
 
 #########################
@@ -325,11 +380,20 @@ sub Text{
 
 =head3 Save
 
-Save the image to file. There is no error-checking at the moment if your chosen library supports the desired file-type.
+ $image -> Save($filename);
+
+Save the image to file. There is no error-checking at the moment. You need to know yourself if your chosen library supports the desired file-type.
+
+=head3 DrawRectangle
+
+ $image -> DrawRectangle (top => $top, bottom => $bottom, right => $right, left => $left, color => "color", border_color => "color");
+
+Draws a rectangle with the given sides. There are no rotated rectangles at the moment.
+ 
 
 =cut
 
-#There is no Save here really, because it's in ::Backend::[library]
+#There is no Save, DrawRectangle.. here really, because they're in ::Backend::[library]
 
 =head2 Internal methods:
 

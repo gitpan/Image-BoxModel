@@ -10,7 +10,16 @@ sub DrawRectangle{
 	my $image = shift;
 	my %p = @_;
 	
-	print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{color}});
+	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
+		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{color}});
+	}
+	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
+		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{fill_color}});
+		print $image->{GD} -> rectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{border_color}});
+	}
+	else{
+		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
+	}
 	
 	$image -> print_message ("DrawRectangle with ",__PACKAGE__,"::DrawRectangle\n");
 }

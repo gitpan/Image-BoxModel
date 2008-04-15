@@ -1,5 +1,8 @@
 Revision history for Perl extension Image::BoxModel:
 
+0.10	Die Apr 15 2008 
+	- add ChartBars (naked), add Chart (incomplete)
+
 0.09	Fre Apr 11 2008 
 	- remove .svn from tar.gz
 
