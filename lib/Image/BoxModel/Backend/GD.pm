@@ -3,19 +3,16 @@ package Image::BoxModel::Backend::GD;
 use strict;
 use warnings;
 
-use Image::BoxModel::Lowlevel;
-our @ISA = ("Image::BoxModel::Lowlevel");
-
 sub DrawRectangle{
 	my $image = shift;
 	my %p = @_;
 	
 	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
-		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{color}});
+		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{color}));	#Colors checks if color is present or adds it or rants
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
-		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{fill_color}});
-		print $image->{GD} -> rectangle($p{left},$p{top},$p{right},$p{bottom},$image->{colors}{$p{border_color}});
+		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{fill_color}));
+		print $image->{GD} -> rectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{border_color}));
 	}
 	else{
 		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
@@ -65,8 +62,8 @@ sub DrawText{
 
 	#draw a small rectangle if desired
 	if ($p{background}){
-		$image->{GD} -> filledRectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->{colors}{$p{background}});
-		$image->{GD} -> rectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->{colors}{black});
+		$image->{GD} -> filledRectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->Colors(color =>$p{background}));
+		$image->{GD} -> rectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->Colors(color =>'black'));
 	}
 
 	#show rotation centre; debug only
@@ -98,7 +95,7 @@ sub DrawText{
 		#~ #$image->{GD}->stringFT($image->{colors}{black},$p{font},$p{textsize},0,$x,$y,$line);
 		
 		($x, $y) = $image->rotation($x, $y, $x_rotation_center, $y_rotation_center, $p{rotate}) unless ($p{rotate} == 0);
-		$image->{GD}->stringFT($image->{colors}{$p{fill}},$p{font},$p{textsize},-$p{rotate}/180*$image->{PI},$x,$y,$line,{resolution=>"72,72"});	
+		$image->{GD}->stringFT($image->Colors(color =>$p{fill}),$p{font},$p{textsize},-$p{rotate}/180*$image->{PI},$x,$y,$line,{resolution=>"72,72"});	
 		
 		#show point where GD starts to draw text, debug only
 		#~ #$image->{GD} -> rectangle ($x -1, $y -1, $x+1, $y +1, $image->{colors}{black});	
@@ -107,6 +104,51 @@ sub DrawText{
 	}
 	
 	return $warning;
+}
+
+sub Colors{		#checks if color is allredy added to the object and adds it if not. dies on malformed or unknown colors.
+	my $image = shift;
+	my %p = @_;
+	if ($p{color} =~ /^#/){	#this is an html-style color #ff6565 e.g.
+		die "invalid color $p{color}" unless ($p{color} =~ /^#[\da-f]{6}?$/i);	#matches an # and then exactly 6 digits or a-f
+		my $allready_present = 0;
+		foreach (keys %{$image->{preset_colors}}){			#search hash if value found
+			if ($image->{preset_colors}{$_} eq $p{color}){
+				$allready_present = 1;
+				last;
+			}
+		}
+		if ($allready_present == 1){	
+			return $image->{colors}{$image->{preset_colors}{$p{color}}}	#simply return color object
+		}
+		else{
+			#~ print "new color: ", $p{color}, " direct from html-style definition\n";	
+			my @rgb = $p{color} =~ /#(..)(..)(..)/;	#extract the r / g / b components. 
+			$_ = hex($_) foreach (@rgb);	
+			
+			$image->{colors}{$p{color}} = $image->{GD}->colorAllocate($rgb[0],$rgb[1],$rgb[2]);#add color (name in hash is html-style name)
+		}
+	}
+	else{
+		if (exists $image->{colors}{$image->{preset_colors}{$p{color}}}){	#html-form is saved in {preset_colors}{$p{color}}
+			#~ print $image->{preset_colors}{$p{color}},"\n";
+			return $image->{colors}{$image->{preset_colors}{$p{color}}}	#simply return color object
+		}
+		else{
+			#~ print "new color: ", $p{color}, " -> ", $image->{preset_colors}{$p{color}},"\n";
+			
+			if (exists $image->{preset_colors}{$p{color}}){			#add color (name in hash is html-style name)
+				my @rgb = $image->{preset_colors}{$p{color}} =~ /#(..)(..)(..)/;
+				$_ = hex($_) foreach (@rgb);
+				
+				$image->{colors}{$image->{preset_colors}{$p{color}}} = $image->{GD}->colorAllocate($rgb[0],$rgb[1],$rgb[2]);
+				return $image->{colors}{$image->{preset_colors}{$p{color}}}
+			}
+			else{
+				die "color $p{color} unknown.";
+			}
+		}
+	}
 }
 
 sub Save{

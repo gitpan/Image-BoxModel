@@ -3,9 +3,6 @@ package Image::BoxModel::Backend::IM;
 use strict;
 use warnings;
 
-use Image::BoxModel::Lowlevel;
-our @ISA = ("Image::BoxModel::Lowlevel");
-
 sub DrawRectangle{
 	my $image = shift;
 	my %p = @_;
@@ -142,6 +139,8 @@ sub DrawText{
 
 	return $warning;
 }
+
+
 
 sub Save{
 	my $image = shift;

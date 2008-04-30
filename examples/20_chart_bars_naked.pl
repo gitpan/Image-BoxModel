@@ -5,9 +5,9 @@ use lib ("../lib");	#if you don't install the module but just untar & run exampl
 use strict;
 use warnings;
 
-use Image::BoxModel;
+use Image::BoxModel::Chart;
 
-my $image = new Image::BoxModel (
+my $image = new Image::BoxModel::Chart (
 	width => 800, 
 	height => 400, 
 	lib=> "IM", 			#[IM|GD]

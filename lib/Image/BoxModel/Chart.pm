@@ -3,15 +3,30 @@
 use warnings;
 use strict;
 use Image::BoxModel::Chart::Data;
-our @ISA = "Image::BoxModel::Chart::Data";
+use Image::BoxModel;
+our @ISA = ("Image::BoxModel::Chart::Data", "Image::BoxModel");
 
 =head1 NAME
 
-Image::BoxModel::Chart - Charts using Image::BoxModel
+Image::BoxModel::Chart - Charts using Image::BoxModel (Incomplete)
 
 =head1 SYNOPSIS
 
-  For an example and general information see Image::BoxModel.pm
+ use Image::BoxModel::Chart;
+ 
+ my $image = new Image::BoxModel::Chart (
+	width => 800, 
+	height => 400, 
+	lib=> "IM", 			#[IM|GD]
+ );	
+ 
+ print $image -> Annotate (text=> 'Hello naked BarChart', padding_top=>10, padding_bottom=> 20, background => "white");
+ 
+ print $image -> Annotate (text => "happiness", textsize => 14, box_position => "left", rotate=>-90, padding_right => "10", text_position => "Center");
+ 
+ $image -> ChartBars (values => [1,5,3,10,-10]);
+ 
+ $image -> Save(file=> "20_chart_bars_naked_$image->{lib}.png");
 
 =head1 DESCRIPTION
 
