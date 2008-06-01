@@ -5,14 +5,25 @@ use warnings;
 
 sub DrawRectangle{
 	my $image = shift;
-	my %p = @_;
-	
+	my %p = (
+		border_thickness => 1,
+		@_
+	);
+	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
+	#~ print $p{border_thickness};
 	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
 		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{color}));	#Colors checks if color is present or adds it or rants
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
-		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{fill_color}));
-		print $image->{GD} -> rectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{border_color}));
+		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{border_color}));
+		print $image->{GD} -> filledRectangle(	#the line above draws simply a filled rectangle in border-color
+			$p{left}+$p{border_thickness},	#then a second rectangle set inside [border_thickness] pixels is drawn onto it.
+			$p{top}+$p{border_thickness},
+			$p{right}-$p{border_thickness},
+			$p{bottom}-$p{border_thickness},
+			$image->Colors(color => $p{fill_color})
+		) unless ($p{border_thickness} >= ($p{right}-$p{left}) or $p{border_thickness} >= ($p{bottom}-$p{top}));
 	}
 	else{
 		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
@@ -32,16 +43,19 @@ sub TextSize{
 
 sub DrawText{
 	my $image = shift;
-	my %p = @_;
+	my %p = (
+		font => './FreeSans.ttf',
+		@_
+	);
 	
 	$image -> print_message ("DrawText with ",__PACKAGE__,"::DrawText\n");
 	my ($capital, $descender, $line_spacing, @corner) = gd_text_size($p{font}, $p{textsize}, $p{text});
-
+	die "$@ $p{font}" if $@;
 	my ($width, $height) = $image->GetTextSize (%p);
 	
-	my $warning =  "box '$p{box}' is to small for text: \"$p{text}\". Drawing anyway.\n (height: text: $height\tbox: ".$image -> {$p{box}}{height}."\n width: text: $width\tbox:".$image -> {$p{box}}{width}."\n"
+	my $warning =  __PACKAGE__. ": box '$p{box}' is to small for text: \"$p{text}\". Drawing anyway.\n (height: text: $height\tbox: ".$image -> {$p{box}}{height}."\n width: text: $width\tbox:".$image -> {$p{box}}{width}.")\n"
 		if (($width > $image -> {$p{box}}{width}) || ($height > $image -> {$p{box}}{height}));
-
+	
 	#first, we need to determine the center of the text-box (which is the center of rotation):
 	#"Center is default:
 	my $x_rotation_center = $p{x_box_center};
@@ -95,15 +109,15 @@ sub DrawText{
 		#~ #$image->{GD}->stringFT($image->{colors}{black},$p{font},$p{textsize},0,$x,$y,$line);
 		
 		($x, $y) = $image->rotation($x, $y, $x_rotation_center, $y_rotation_center, $p{rotate}) unless ($p{rotate} == 0);
-		$image->{GD}->stringFT($image->Colors(color =>$p{fill}),$p{font},$p{textsize},-$p{rotate}/180*$image->{PI},$x,$y,$line,{resolution=>"72,72"});	
-		
+		$image->{GD}->stringFT($image->Colors(color =>$p{color}),$p{font},$p{textsize},-$p{rotate}/180*$image->{PI},$x,$y,$line,{resolution=>"72,72"});	
+
 		#show point where GD starts to draw text, debug only
 		#~ #$image->{GD} -> rectangle ($x -1, $y -1, $x+1, $y +1, $image->{colors}{black});	
 		
 		$e ++;
 	}
 	
-	return $warning;
+	#~ return $warning;
 }
 
 sub Colors{		#checks if color is allredy added to the object and adds it if not. dies on malformed or unknown colors.
@@ -130,23 +144,22 @@ sub Colors{		#checks if color is allredy added to the object and adds it if not.
 		}
 	}
 	else{
-		if (exists $image->{colors}{$image->{preset_colors}{$p{color}}}){	#html-form is saved in {preset_colors}{$p{color}}
-			#~ print $image->{preset_colors}{$p{color}},"\n";
-			return $image->{colors}{$image->{preset_colors}{$p{color}}}	#simply return color object
-		}
-		else{
-			#~ print "new color: ", $p{color}, " -> ", $image->{preset_colors}{$p{color}},"\n";
-			
-			if (exists $image->{preset_colors}{$p{color}}){			#add color (name in hash is html-style name)
-				my @rgb = $image->{preset_colors}{$p{color}} =~ /#(..)(..)(..)/;
-				$_ = hex($_) foreach (@rgb);
-				
-				$image->{colors}{$image->{preset_colors}{$p{color}}} = $image->{GD}->colorAllocate($rgb[0],$rgb[1],$rgb[2]);
-				return $image->{colors}{$image->{preset_colors}{$p{color}}}
+		if (exists $image->{preset_colors}{$p{color}}){			#add color (name in hash is html-style name)
+			if (exists $image->{colors}{$image->{preset_colors}{$p{color}}}){	#html-form is saved in {preset_colors}{$p{color}}
+				#~ print $image->{preset_colors}{$p{color}},"\n";
+				return $image->{colors}{$image->{preset_colors}{$p{color}}}	#simply return color object
 			}
 			else{
-				die "color $p{color} unknown.";
+				my @rgb = $image->{preset_colors}{$p{color}} =~ /#(..)(..)(..)/;
+				$_ = hex($_) foreach (@rgb);
+			
+				$image->{colors}{$image->{preset_colors}{$p{color}}} = $image->{GD}->colorAllocate($rgb[0],$rgb[1],$rgb[2]);
+				return $image->{colors}{$image->{preset_colors}{$p{color}}}
+				#~ print "new color: ", $p{color}, " -> ", $image->{preset_colors}{$p{color}},"\n";
 			}
+		}
+		else{
+			die "Color $p{color} unknown. Die";
 		}
 	}
 }
@@ -163,10 +176,11 @@ sub Save{
 #this sub does some calculations for some routines. As soon as all GD-work is done here, I will see if this sub is still the best way to do it..
 sub gd_text_size{
 	my ($font, $size, $text) = @_;
-	
+	$font = './FreeSans.ttf' unless (-f $font);
 	my @corner;
 	
 	my @bounds = GD::Image->stringFT(0,$font,$size,0,0,0,"Ä", {resolution=>"72,72"});
+	die "$@ $font" if $@;
 	my $capital = $bounds[1]- $bounds[7];
 
 	@bounds = GD::Image->stringFT(0,$font,$size,0,0,0,"Äg", {resolution=>"72,72"});

@@ -5,7 +5,7 @@ use strict;
 
 =head1 NAME
 
-Image::BoxModel::Chart::Data - Data manipulation an analysis methods for Image::BoxModel::Chart
+Image::BoxModel::Chart::Data - Data manipulation and analysis methods for Image::BoxModel::Chart
 
 =head1 SYNOPSIS
 
@@ -51,6 +51,7 @@ sub ArrayHighestWidest{
 	my $widest  = 0;
 	my $highest = 0;
 	foreach (@{$p{values}}){	
+		#~ print "$_\n";
 		my ($width, $height) = $image -> GetTextSize(text => $_, textsize => $p{textsize}, rotate => $p{rotate});
 		$widest = $width if ($width > $widest);
 		$highest = $height if ($height > $highest);
@@ -70,19 +71,19 @@ sub ExpandToGrid{
 	my $step;	#if we step upwards or downwards
 	my $counter = 0;
 	
-	if ($p{value} > $p{base_line}){
+	if ($p{value} > $p{base}){
 		$step = $p{skip};
-		$counter++ while ($step * $counter + $p{base_line} < $p{value});	#0 * step .. 1 * step until bigger than the value (normally the highest of the array..)
+		$counter++ while ($step * $counter + $p{base} < $p{value});	#0 * step .. 1 * step until bigger than the value (normally the highest of the array..)
 	}
-	elsif ($p{value} < $p{base_line}){
+	elsif ($p{value} < $p{base}){
 		$step = -$p{skip};
-		$counter++ while ($step * $counter + $p{base_line} > $p{value});
+		$counter++ while ($step * $counter + $p{base} > $p{value});
 	}
 	else {
 		return $p{value};	#if the given value equals to the base line, no expansion is needed.
 	}
 	
-	$p{value} = $step * $counter + $p{base_line}; 
+	$p{value} = $step * $counter + $p{base}; 
 	
 	return $p{value};
 }
@@ -99,26 +100,51 @@ sub BuildScaleArray{
 	my @scale_array;
 	my $counter = 1;
 	
-	push @scale_array, $p{base_line};		#First, base_line goes into @array
+	push @scale_array, $p{base};		#First, base goes into @array: Ensure it to be in @array!
 	
 								#then, all values lower than base_line are prepended
-	while ((-$p{skip}) * $counter + $p{base_line} >= $p{lowest}){
-		unshift @scale_array, (-$p{skip}) * $counter + $p{base_line};
-		#~ print -$p{skip} * $counter + $p{base_line}, "\n";
+	while ((-$p{skip}) * $counter + $p{base} >= $p{lowest}){
+		unshift @scale_array, (-$p{skip}) * $counter + $p{base};
 		$counter ++;
 	}
 	
 								#and then, all values bigger than base_line are appended
 	$counter = 1;
-	while ($p{skip} * $counter + $p{base_line} <= $p{highest}){
-		push @scale_array, $p{skip} * $counter + $p{base_line};
+	while ($p{skip} * $counter + $p{base} <= $p{highest}){
+		push @scale_array, $p{skip} * $counter + $p{base};
 		$counter ++;
 	}
 	
-	#this seems quite ugly and long. It ensures that the exact value of baseline is in the array 
+	#this seems quite ugly and long. It ensures that the exact value of base is in the array 
 	#and it makes it easily possible to do multiplications instead of continued addition, 
 	#which might lead to increasing errors if skip holds a value which is not precisely representable. 0.1 e.g.
+	#I don't know how precise perl calculates and if this approach improves the results, btw..
 	return @scale_array;
+}
+
+sub PopulateArrays{
+	my $image = shift;
+	my %p = @_;
+	
+	my (@datasets, @colors, @bordercolors);	#@values is always an 2d-array holding the data-sets.
+	my $counter = 0;
+	my $max_values = 0;
+	foreach (sort keys %p){
+		next unless (/^dataset/);
+		$datasets[$counter] = $p{$_};
+		
+		my $c = $_ ;	
+		$c=~ s/^dataset/color/;	#values_01 becomes color_01
+		$colors[$counter] = $p{$c} or $colors[$counter] = $p{color}[$counter] or $colors[$counter] = $p{color}[0];
+		
+		my ($h, $l) = $image->ArrayHighestLowest(@{$datasets[$counter]});
+		$p{highest} = $h unless (exists $p{highest} and $p{highest} > $h);
+		$p{lowest} = $l unless (exists $p{lowest} and $p{lowest} < $l);
+		$max_values = scalar (@{$datasets[$counter]}) unless ($max_values and $max_values > @{$datasets[$counter]});
+		
+		$counter ++;
+	}
+	return (\@datasets, \@colors, \@bordercolors, $max_values, %p);
 }
 
 1;

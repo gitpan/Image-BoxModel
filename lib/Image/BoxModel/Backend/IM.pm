@@ -5,13 +5,26 @@ use warnings;
 
 sub DrawRectangle{
 	my $image = shift;
-	my %p = @_;
+	my %p = (
+		border_thickness => 1,
+		@_
+	);
+	
+	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
+	
 	
 	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
 		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{color}, fill=>$p{color}) ;
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
-		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{border_color}, fill=>$p{fill_color}) ;
+		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{border_color}, fill=>$p{border_color});
+		print $image->{IM} -> Draw (
+			primitive => "rectangle", 
+			points => ($p{left}+$p{border_thickness}).",".($p{top}+$p{border_thickness}).",".($p{right}-$p{border_thickness}).",".($p{bottom}-$p{border_thickness}), 
+			stroke => $p{fill_color}, 
+			fill=>$p{fill_color}
+		) unless ($p{border_thickness} >= ($p{right}-$p{left}) or $p{border_thickness} >= ($p{bottom}-$p{top}));	#we don't draw if there is nothing to draw..
 	}
 	else{
 		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
@@ -24,6 +37,8 @@ sub TextSize{
 	my %p = @_;
 	
 	my (undef,undef,undef,undef, $w, $h, undef) = $image->{IM} -> QueryMultilineFontMetrics(text => $p{text}, font => $p{font}, pointsize => $p{textsize});
+	
+	#~ print "Measuring font $p{font}\n";
 	
 	my @corner;
 	$corner[0]{x} = 0;
@@ -44,9 +59,14 @@ sub TextSize{
 
 sub DrawText{
 	my $image = shift;
-	my %p = @_;
+	my %p = (
+		font => 'default',
+		@_
+	);
 	
 	$image -> print_message ("DrawText with ",__PACKAGE__,"::DrawText\n");
+	
+	print __PACKAGE__," Warning: Font '$p{font}' not found. Using default (whatever this may be for IM)\n" unless (-f $p{font} or $p{font} eq 'default');
 	
 	my (undef,undef,undef,$descender, $w, $h, undef) = $image->{IM} -> QueryMultilineFontMetrics(text => $p{text}, font => $p{font}, pointsize => $p{textsize});
 	
@@ -92,18 +112,21 @@ sub DrawText{
 	my $lines = 1;
 	$lines ++ while ($p{text} =~ /\n/g);
 	$y += $h / $lines; 
-	my $x;
+	my $x =0;
 	
 	#This only aligns the text relative to its "mini-box", which is positioned inside its box.
 	#There are 2 things that need to be distinguished: text inside its mini-box can be of any rotation (align means a direction relative to the text: center, right, left), while the mini-box itself can be positioned relative to the absolute direction of the whole picture: north, west, south etc.
-	if ($p{align} eq "Center"){
+	if ($p{align} =~ /^Center$/){
+		$p{align} = 'Center';	#this is important because IM ignores this parameter unless the first character is uppercase and the others are lowercase..
 		$x = $p{x_box_center};
 	}
-	elsif ($p{align} eq "Right"){
+	elsif ($p{align} =~ /^Right$/i){
+		$p{align} = 'Right';
 		$x = $p{x_box_center} + $w/2;	#Aligns relative to centered text-box
 	}
-	elsif ($p{align} eq "Left"){
-		$x = $p{x_box_center} - $w/2;
+	elsif ($p{align} =~ /^Left$/i){
+		$p{align} = 'Left';
+		$x =$p{x_box_center} - $w/2;
 	}
 	($x, $y) = $image -> rotation ($x, $y, $p{x_box_center}, $p{y_box_center}, $p{rotate}) unless ($p{rotate} == 0);
 	#Now the text-mini-box is shifted to the desired edge(s) of the box. "Center" is the default, so nothing has to be done.
@@ -133,8 +156,9 @@ sub DrawText{
 		$x += $x_shift;
 		$most{$_} += $x_shift foreach ("right", "left");
 	}
+	
 	$image->{IM} -> Draw (primitive => 'rectangle', points => "$most{left}, $most{top}, $most{right}, $most{bottom}", fill => $p{background}) if ($p{background});
-	$image->{IM} -> Annotate(%p, x=>$x, y=> $y, font => $p{font});
+	$image->{IM} -> Annotate(%p, x=>$x, y=> $y, font => $p{font}, fill => $p{color}, pointsize => $p{textsize});	#the fill&pointsize-parameter is questionable, because they get passed into color&textsize as well (these are ignored by IM)!
 	#~ $image->{IM} -> Draw (primitive => 'rectangle', points => ($x-2).",". ($y-2).",". ($x+2).",". ($y+2), fill => "yellow");#uncomment for debugging: little yellow square where IM begins ti draw text.
 
 	return $warning;

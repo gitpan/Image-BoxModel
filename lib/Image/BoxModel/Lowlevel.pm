@@ -18,22 +18,13 @@ Image::BoxModel::Lowlevel - Lowlevel functions for Image::BoxModel
 Image::BoxModel::Lowlevel implements some basic functionality. 
 
 It does so by using the methods from Image::BoxModel::Backend::[LIBRARY]
-The thing is, this is in the stage of being implemented at the moment.
 
 There are more backends planned and more functionality for each backend.
 (backends, patches, wishes are very welcome - in this order ;-)
 
-Image::BoxModel::Lowlevel can be used directly, which is considered painful. You need to specify the size of a box before you can put text on it, for example. This can lead to non-fitting text.
-
-Better use the Modules
-
-Image::BoxModel::Text for all things text
-
-and
-
-Image::BoxModel::Chart for charts.
-
-The bad thing is, these modules are yet to be written. ;-)
+Image::BoxModel::Lowlevel can be used directly, which is considered painful sometimes. 
+You need to specify the size of a box before you can put text on it, for example, while 'Annotate' (inherited from ::Text) easily inserts a box and puts text on it.
+On the other hand,  ::Lowlevel gives you full control.
 
 =head2 Methods:
 
@@ -81,18 +72,19 @@ If you don't specify 'resize => $name_of_box_to_be_resized', the standard-box 'f
 =cut
 
 sub Box{
-	
 	my $image = shift;
 	my %p = @_;	#%p holds the _p_arameters
-	my $resize = $p{resize} || "free";
+	my $resize = $p{resize} || 'free';
 	
-	die __PACKAGE__,"::Box: Mandatory parameter name missing. No box added" unless $p{name};
+	die __PACKAGE__,"::Box: Mandatory parameter name missing. Die." unless $p{name};
 	return "$p{name} already exists. No box added" if (exists $image->{$p{name}});
+	die __PACKAGE__,"::Box: Mandatory parameter position missing. Die." unless $p{position};
 	
 	#return if width or height is not specified. 
 	#(height wenn adding at top or bottom, width wen adding at left or right side.)
 	if ($p{position} eq "top" or $p{position} eq "bottom"){
 		return "Box: Please specify height > 0. No box added\n" unless (exists $p{height} and $p{height} > 0);
+		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{height}, available: $image->{$resize}{height})\n" if ($p{height} > $image->{$resize}{height});
 	}
 	elsif ($p{position} eq "left" or $p{position} eq "right"){
 		return "Box: Please specify width > 0. No box added\n" unless (exists $p{width} and $p{width} > 0);
@@ -185,6 +177,16 @@ sub FloatBox{
 	
 	$image -> print_message ("Add FloatBox \"$p{name}\" with ", __PACKAGE__,"\n");
 	
+	#shift right <-> left if left is more right than right ;-)
+	($image->{$p{name}}{right}, $image->{$p{name}}{left})      = ($image->{$p{name}}{left}, $image->{$p{name}}{right}) 
+		if ($image->{$p{name}}{left} > $image->{$p{name}}{right});
+	#same for bottom and top
+	($image->{$p{name}}{top}  , $image->{$p{name}}{bottom}) = ($image->{$p{name}}{bottom}  , $image->{$p{name}}{top}) 
+		if ($image->{$p{name}}{bottom} < $image->{$p{name}}{top});
+		
+	$image->{$p{name}}{$_} = int ($image->{$p{name}}{$_}) foreach ('top', 'left');		#only allow integer values
+	$image->{$p{name}}{$_} = ceil ($image->{$p{name}}{$_}) foreach ('right', 'bottom');
+	
 	my $top = $image->{$p{name}}{top};
 	my $bottom = $image->{$p{name}}{bottom};
 	my $left = $image->{$p{name}}{left};
@@ -202,7 +204,7 @@ sub FloatBox{
 =head3 GetTextSize
 
 Get the boundig size of (rotated) text. Very useful to find out how big boxes need to be.
- ($width, $height) = GetTextSize(
+ ($width, $height) = $image -> GetTextSize(
 	text => "Your Text",
 	textsize => [number],
 	rotate => [in degrees, may be negative as well]
@@ -214,7 +216,7 @@ sub GetTextSize{
 	my $image = shift;
 	my %p = (
 		rotate => 0,
-		font => "verdana.ttf",
+		font => 'default',
 		@_
 	);
 	
@@ -230,7 +232,7 @@ sub GetTextSize{
 	my @corner = $image->TextSize(text => $p{text}, font => $p{font}, textsize => $p{textsize});
 	
 	#rotate all 4 corners
-	unless ($p{rotate} == 0){	
+	if ($p{rotate}){	
 		for (my $i = 0; $i < scalar(@corner); $i++){
 			($corner[$i]{x}, $corner[$i]{y}) =  $image -> rotation ($corner[$i]{x}, $corner[$i]{y}, 0, 0, $p{rotate});
 		}
@@ -250,7 +252,8 @@ sub GetTextSize{
 		$most{top} = $_->{y} if ($_->{y} < $most{top});
 		$most{bottom} = $_->{y} if ($_->{y} > $most{bottom});
 	}
-	return $most{right}- $most{left}, $most{bottom}-$most{top};	#return width and height
+	return (ceil($most{right}- $most{left})), (ceil($most{bottom}-$most{top}));	#return width and height
+	#ceil to ensure that the a the text will surely and safely fit.. There were strange errors in ::Backend::GD with values equaling while being inequal at the same time! I don't unterstand this.
 }
 
 =head3 BoxSplit
@@ -266,10 +269,6 @@ In bitmap-land we only have integer-size-boxes. Therefore some boxes may be 1 pi
 Example:
 
 If the parent is "myBox", then the babies are named myBox_0, myBox_1, ...myBox_2635 (if you are crazy enough to have 2635 babies)
-
-I use it primarily for ::Charts, where axis-annotations and bars etc. are put into their small boxes. 
-This enables easy positioning of these elements, because the object knows the borders of its boxes. 
-You can for example center an element inside its box, which is much easier than calculating the exact position.
 
 =cut
 
@@ -318,13 +317,17 @@ sub BoxSplit{
 
 =head3 Text
 
+For easy use: Better use 'Annotate' (inherited from ::Text) instead of 'Text'. Annotate reserves a box automatically while Text does not. 
+
+But of course, if you need / want full control, use 'Text'.
+
 Put (rotated, antialized) text on a box. Takes a bunch of parameters, of which "text" and "textsize" are mandatory. 
 
  $image -> Text(
 	text => 	$text,
 	textsize => [number],
-	fill=>		"black",				#color of text, will be renamed soon
-	font =>	"verdana",
+	color=>	"black",				
+	font =>	[font-file]
 	rotate=>	[in degrees, may be negative as well],
 	box => 	"free",
 	align => 	[Left|Center|Right]",		#align is how multiline-text is aligned
@@ -345,8 +348,7 @@ Put (rotated, antialized) text on a box. Takes a bunch of parameters, of which "
 sub Text{
 	my $image = shift;
 	my %p = (
-		fill=>"black",
-		font => "verdana",
+		color=>"black",
 		rotate=>0,
 		box => "free",
 		rotate => 0,
@@ -358,6 +360,7 @@ sub Text{
 	foreach ("text", "textsize"){
 		$warning .= "Mandatory parameter \"$_\" missing. " unless (exists $p{$_});
 	}
+	$warning .= "align = $p{align} is invalid. Valid are Right / Left / Center. " unless ($p{align} =~ /left/i or $p{align} =~ /right/i or $p{align} =~ /center/i);
 	
 	#if the box does not exist (Box couldn't / didn't want to make it due to missing parameters), we can't add text.
 	#(It's better if we don't want to..)
@@ -371,6 +374,7 @@ sub Text{
 	$p{y_box_center} = $image->{$p{box}}{top} + ($image->{$p{box}}{bottom} - $image->{$p{box}}{top}) / 2; 
 	
 	#DrawText lives in ::Backend::[your_library], because it has to do much library-specific calculations
+	
 	my $w = $image -> DrawText(%p);
 	$warning .= $w if $w;
 	
@@ -386,7 +390,13 @@ Save the image to file. There is no error-checking at the moment. You need to kn
 
 =head3 DrawRectangle
 
- $image -> DrawRectangle (top => $top, bottom => $bottom, right => $right, left => $left, color => "color", border_color => "color");
+Rectangle without border:
+
+ $image -> DrawRectangle (top => $top, bottom => $bottom, right => $right, left => $left, color => "color");
+
+Rectangle with border:
+
+ $image -> DrawRectangle (top => $top, bottom => $bottom, right => $right, left => $left, fill_color => "color", border_color => "color");
 
 Draws a rectangle with the given sides. There are no rotated rectangles at the moment.
  

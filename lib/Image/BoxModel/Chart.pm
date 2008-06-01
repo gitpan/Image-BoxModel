@@ -4,6 +4,8 @@ use warnings;
 use strict;
 use Image::BoxModel::Chart::Data;
 use Image::BoxModel;
+
+#~ use POSIX;
 our @ISA = ("Image::BoxModel::Chart::Data", "Image::BoxModel");
 
 =head1 NAME
@@ -34,15 +36,15 @@ Image::BoxModel::Chart will implement different sorts of charts.
 
 bars, points, stapled points, lines; all vertically and horizontally
 
-The development is quite slow, so if you wish to see something implemented, get the source and feel free to contribute. Or consider sponsoring. :-)
-
-Completeness is more important here than a fast implementation.
+The development is quite slow here, so if you wish to see something implemented, get the source and feel free to contribute. Or consider sponsoring. :-)
 
 =head2 Methods
 
 =head3 ChartBars
 
- $image -> ChartBars(values => \@values|[value1, value2, value3...] scale_skip
+ $image -> ChartBars(
+	values => \@values|[value1, value2, value3...], 
+	scale_skip => [number]	#skip on scale-axis
 
 Draw naked bars on an empty box.
 
@@ -51,192 +53,296 @@ Draw naked bars on an empty box.
 sub ChartBars{
 	my $image = shift;
 	my %p = (
-		box => "free",
+		box => 'free',
+		
+		orientation => 'vertical',
+		
+		scale_annotation_size => 12,
+		scale_annotation_rotate => 0,
 		scale_skip => 1,
+		scale_annotation_show => 1,
+		scale_position => 'left',
+		scale_annotation_background => $image->{background},
+		scale_annotation_padding => '10',
+		
+		values_annotation_size => 12,
+		values_annotation_show => 1,
+		values_annotation_position => 'bottom',
+		values_annotation_background => $image->{background},
+		values_annotation_padding => '10',
+		values_annotation_rotate => '-90',
+		
 		box_border => 10,
-		box => "free",
-		color => "red",
-		bordercolor => "black",
-		dropshadow_bordercolor => "darkgrey",
-		dropshadow_color => "grey",
+		box => 'free',
+		color => ['red', 'orange', 'yellow', 'LightGreen', 'green', 'blue', 'DarkBlue', 'DarkRed'],
+		border_color => "black",
+		border_thickness => 1, 
+		background_color => 'grey90',
+		grid_color => 'grey50',
 		bar_thickness => ".5",	#how much breakfast the bars have had: 1 = touching each other, .5 = half as thick , >1 overlapping, etc. (bug! paints out of its box if >1!); 0.01 or something for debug (exact positioning..)
-		font => "verdana.ttf",
 		to_border => 1,	#true if first & last tick are on the border .. I believe this to be crap
 		rotate => 0,
+		draw_from_base => 0,	#if the bars should be drawn from the base or not
+		base => 0,		#"normally" one would like to draw the bars from zero upwards or downwards (negative values), but possibly someone wants to draw from 5 e.g.
+		
+		legend_show => 0,
+		legend_position => 'right',
+		legend_background => $image->{background},
+		legend_padding => 10,
+		legend_border => 1,
+		
 		@_
 	);
-	return "Mandatory parameter 'values' not specified. No chart drawn.\n" unless $p{values};
-	my @values = @{$p{values}};
 	
-	#Determine highest an lowest value.
-	($p{highest}, $p{lowest}) = $image ->ArrayHighestLowest(@values);
+	my ($max_values, $dataset_ref, $colors_ref, $border_colors_ref);
+	($dataset_ref, $colors_ref, $border_colors_ref, $max_values, %p) = $image -> PopulateArrays(%p);
+	my @datasets = @{$dataset_ref};
+	my @colors = @{$colors_ref};
+	my @border_colors = @{$border_colors_ref};
 	
-	#expand highest&lowest to ensure that the chart ends at a value which is printed (if desired :-)
-	$p{highest} = $image-> ExpandToGrid (value => $p{highest}, skip => $p{scale_skip}, base_line => $p{base_line}) if $p{scale_expand_to_grid};
-	$p{lowest}  = $image-> ExpandToGrid (value => $p{lowest},  skip => $p{scale_skip}, base_line => $p{base_line}) if $p{scale_expand_to_grid};
-	
-	my $counter = 0;
-	
-	my $x_step = ($image->{$p{box}}{width}- ($p{box_border}-1) *2) / scalar(@values);		#step from the center of one bar / numer to the next
-	my $y_step = ($image->{$p{box}}{height} - ($p{box_border}-1) *2) / ($p{highest} - $p{lowest}+1 - $p{to_border});
-	my $shift = 0;
-	$shift = $y_step / 2 unless ($p{to_border});	#..the 1st tick is painted half a step inside..
-	
-	foreach (@values){
-		my $x1 = int ( $image->{$p{box}}{left}+ $x_step * $counter + $x_step / 2 - $p{bar_thickness}* $x_step / 2 +$p{box_border}-1);	#round properly?
-		my $x2 = int ( $image->{$p{box}}{left}+ $x_step * $counter + $x_step / 2 + $p{bar_thickness}* $x_step / 2 +$p{box_border}-1);
-		my $y1 = int ( $image->{$p{box}}{bottom}- $y_step * ($_ - $p{lowest}) - $shift  - $p{box_border}+1);
-		my $y2 = int ( $image->{$p{box}}{bottom} - $p{box_border}+1);	#feature to be added: wheter we paint from the bottom or from zero.
-		$counter ++;
-		next if ($_ == $p{lowest});	#not very clever: as soon as "draw from zero" is added, this has to be changed.
+	return "Mandatory parameter 'values.+' not specified. Howto call value-parameters: values[any_character_or_number].  No chart drawn.\n" unless @datasets;
+	return "Scale_skip must not be 0. Can't draw chart" unless $p{scale_skip};
 		
-		$image -> DrawRectangle (top => $y1, bottom => $y2, left => $x1, right => $x2, fill_color => $p{color}, border_color=>$p{bordercolor});
+	if ($p{scale_expand_to_grid}){	#expand highest&lowest to ensure that the chart ends at a value which is printed (if desired :-)
+		$p{highest} = $image-> ExpandToGrid (value => $p{highest}, skip => $p{scale_skip}, base => $p{base});
+		$p{lowest}  = $image-> ExpandToGrid (value => $p{lowest},  skip => $p{scale_skip}, base => $p{base});
 	}
-	return;
-}
 
-=head3 Chart
-
-Incomplete! Don't use!
-
-It fights the problem from outside an will be cutting boxes for axis-annotations, ticks and so on. I will first fight from the inside and do the "naked" charts. Afterwards I will come back and fix this.
-
-=cut
-
-#Chart has to be changed: It should first cut off scale-annotation, padding, tick, then value-annotation. 
-#Then we need a new method to put ticks & text on scale-annotation relative to the borders of the chart-field..
-#Anyway, the effort is not for nothing, because the methods in ::Data can & will be used. :-)
-
-sub Chart{
-	my $image = shift;
-	my %p = preset_defaults(@_);
-	return "Mandatory parameter 'values' not specified. No chart drawn.\n" unless $p{values};
-
-	#Check if desired box to put chart on is present
-		#please implement
-		
-	#Check if scale-position makes sense. "Bottom" if chart is "vertical" is nonsense e.g.
-		#please implement
+	my @scale_array = $image->BuildScaleArray (base => $p{base}, highest => $p{highest}, lowest => $p{lowest}, skip => $p{scale_skip});
 	
-	#Determine highest an lowest value.
-	($p{highest}, $p{lowest}) = $image ->ArrayHighestLowest(@{$p{values}});
+	$p{lowest} = $scale_array[0] if ($p{lowest} > $scale_array[0]);		#if base is lower than the lowest value, we need to set lowest to base. (BuilsScaleArray includes base)
+	$p{highest} = $scale_array[-1] if ($p{highest} < $scale_array[-1]);	#and the same for highest
 	
-	#expand highest&lowest to ensure that the chart ends at a value which is printed (if desired :-)
-	$p{highest} = $image-> ExpandToGrid (value => $p{highest}, skip => $p{scale_skip}, base_line => $p{base_line}) if $p{scale_expand_to_grid};
-	$p{lowest}  = $image-> ExpandToGrid (value => $p{lowest},  skip => $p{scale_skip}, base_line => $p{base_line}) if $p{scale_expand_to_grid};
-	
-	#Find the chart a free name for its box (unless the user gave it one..)
-		#please implement!
-	
-	#scale-annotation
+	#boxes for scale-annotation
 	if ($p{scale_annotation_show}){
-		
-		#Build array of scale-annotations: -10, -8, -6 ... 16, 18, 20 e.g.
-		my @scale_annotations = $image -> BuildScaleArray(lowest => $p{lowest}, highest => $p{highest}, base_line => $p{base_line}, skip => $p{scale_skip});
-		
-		#~ print join ("\n", @scale_annotations);
-		
-		#Determine widest and highest annotation
-		($p{scale_height}, $p{scale_width}) = $image-> ArrayHighestWidest(values=> $p{values}, textsize => $p{scale_annotation_size}, rotate => $p{scale_annotation_rotate});
-		
-		#reserve space for scale-annotation
-		print $image -> Box(
-			resize => $p{name}, 
-			position =>$p{scale_position}, 
-			width=> $p{scale_width}, 
-			height => $p{scale_height}, 	#the good thing is, box only uses the value it needs. if it makes a new box on the left, height is ignored.
-			name=> "$p{name}_scale_annotation", 
-			background => $p{scale_annotation_background}
+		$image -> ArrayBox (
+			%p, 
+			values_ref => \@scale_array, 
+			textsize => $p{scale_annotation_size}, 
+			rotate=>$p{scale_annotation_rotate}, 
+			resize => $p{box}, 
+			position => $p{scale_position},
+			name=> "$p{box}_scale_annotation", 
+			background => $p{scale_annotation_background},
 		);
-		print $image -> Box(
-			resize => $p{name}, 
+		
+		$image -> Box(
+			resize => $p{box}, 
 			position =>$p{scale_position}, 
 			width=> $p{scale_annotation_padding}, 
 			height =>$p{scale_annotation_padding}, 
 			name=> "$p{box}_scale_annotation_padding",
-			background => $p{scale_padding_background}
+			background => $image ->{background}
 		) if $p{scale_annotation_padding};
-		
-		#make little boxes for each number in @scale_annotations
-		$image -> BoxSplit (box => "$p{name}_scale_annotation", orientation=> "vertical", count => scalar(@scale_annotations));
-		
-		#print scale-annotation
-			#orientation (left etc) is unimplemented)
-		my $counter = 0;
-		foreach (@scale_annotations){
-			print "Hello $_\n";
-			print $image -> Text (
-				box => "$p{name}_scale_annotation_$counter",	#the little boxes have the names $p{name}_scale_annotation_0, $p{name}_scale_annotation_1 ...
-				textsize => $p{scale_annotation_size},
-				rotate => $p{scale_annotation_rotate},
-				text => $_
-			);
-			$counter ++;
+	}
+	
+	#boxes for values_annotation
+	if ($p{values_annotation_show}){
+		$image -> ArrayBox (
+			%p,
+			values_ref => $p{values_annotations},
+			textsize => $p{values_annotation_size}, 
+			rotate=>$p{values_annotation_rotate}, 
+			resize => $p{box}, 
+			position => $p{values_annotation_position},
+			name=> "$p{box}_values_annotation", 
+			background => $p{values_annotation_background},
+		);
+		$image -> Box(
+			resize => $p{box}, 
+			position =>$p{values_annotation_position}, 
+			width=> $p{values_annotation_padding}, 
+			height =>$p{values_annotation_padding}, 
+			name=> "$p{box}_values_annotation_padding",
+			background => $image ->{background}
+		) if $p{values_annotation_padding};
+	}
+	
+	if ($p{legend_show}){
+		$image -> Legend(
+			colors => \@colors, 
+			values_ref => $p{values_annotations},
+			textsize => $p{values_annotation_size}, 
+			#~ rotate=>$p{values_annotation_rotate}, 
+			resize => $p{box}, 
+			position => $p{legend_position},
+			name => "$p{box}_legend",
+			background => $p{legend_background},
+			padding => $p{legend_padding},
+			font => $p{font},
+			border => $p{legend_border},
+		);
+		$image -> Box(
+			resize => $p{box}, 
+			position =>$p{legend_position}, 
+			width=> $p{legend_padding}, 
+			height =>$p{legend_padding}, 
+			name=> "$p{box}_legend_padding",
+			background => $image ->{background}
+		) if $p{values_annotation_padding};
+	}
+	
+	my $x_step = ($image->{$p{box}}{width}- ($p{box_border}-1) *2) / $max_values;		#step from the center of one bar / number of bars to the next
+	my $y_step = ($image->{$p{box}}{height} - ($p{box_border}-1) *2) / ($p{highest} - $p{lowest}+1 - $p{to_border});
+	my $shift = 0;
+	$shift = $y_step / 2 unless ($p{to_border});	#..the 1st tick is painted half a step inside..
+	
+	#after the steps are calculated, lets draw the annotations
+	if ($p{scale_annotation_show}){
+		my $c = 0;
+		foreach (@scale_array){
+			my ($w, $h) = $image -> GetTextSize(text => $_, textsize => $p{scale_annotation_size}, rotate => $p{scale_annotation_rotate});
+			
+			my $y = int ($image->{$p{box}}{bottom}- $y_step * ($_ - $p{lowest}) - $shift  - $p{box_border}+1);
+			
+			my $x1 = int ($image->{"$p{box}_scale_annotation"}{right}-$w);	#bad: assumes align = right	
+			my $x2 = $image->{"$p{box}_scale_annotation"}{right};
+
+			print $image -> FloatBox(name => "scale_annotation_$c", top => ($y - $h/2), bottom => ($y + $h/2), right => $x2, left => $x1); 
+			print $image -> Text (box=> "scale_annotation_$c", text => $_, textsize => $p{scale_annotation_size}, rotate => $p{scale_annotation_rotate});
+			$c++;
 		}
 	}
 	
-	#values-annotation
 	if ($p{values_annotation_show}){
-		
+		my $c = 0;
+		foreach (0.. scalar(@{$p{values_annotations}})-1){
+			my ($w, $h) = $image -> GetTextSize(text => $p{values_annotations}->[$_], textsize => $p{values_annotation_size}, rotate => $p{values_annotation_rotate});
+			
+			my $x = int ($image->{$p{box}}{left}+ $x_step * $_ + $x_step / 2 +$p{box_border}-1);
+			
+			my $y1 =  $image->{"$p{box}_values_annotation"}{top}+$h;	#bad: assumes align = right); 
+			my $y2 = $image->{"$p{box}_values_annotation"}{top};
+			
+			print $image -> FloatBox(name => "values_annotation_$c", top => $y2, bottom => $y1, left => ($x-$w/2), right => ($x+$w/2));
+			print $image -> Text (box => "values_annotation_$c", text => @{$p{values_annotations}}[$_], textsize => $p{values_annotation_size}, rotate => $p{values_annotation_rotate});
+			$c++;
+		}
 	}
 	
-	return;	#nothing at the moment!
+	$image-> DrawRectangle(	#Draw a nice rectangle around the chart
+		left => $image->{$p{box}}{left}, 
+		right => $image->{$p{box}}{right}, 
+		top => $image->{$p{box}}{top}, 
+		bottom => $image->{$p{box}}{bottom}, 
+		fill_color => $p{background_color},
+		border_color => $p{border_color},
+		border_thickness => $p{border_thickness},
+	);
+	
+	$image -> DrawGrid(\@scale_array, $y_step, $shift, %p);
+	
+	foreach my $number_of_data_element (0 .. $max_values-1){
+		my $x_leftmost = int ( $image->{$p{box}}{left}+ $x_step * $number_of_data_element + $x_step / 2 - $p{bar_thickness}* $x_step / 2 +$p{box_border}-1);	#round properly?
+		my $x_rightmost = int ( $image->{$p{box}}{left}+ $x_step * $number_of_data_element + $x_step / 2 + $p{bar_thickness}* $x_step / 2 +$p{box_border}-1);
+		
+		foreach (0.. $#datasets){
+			my $x1 = int ($x_leftmost + ($x_rightmost - $x_leftmost) / scalar(@datasets) * $_);
+			my $x2 = int ($x_leftmost + ($x_rightmost - $x_leftmost) / scalar(@datasets) * ($_+1));
+			$datasets[$_][$number_of_data_element] = $p{base} unless ($datasets[$_][$number_of_data_element]);
+			my $y1 = int ( $image->{$p{box}}{bottom}- $y_step * ($datasets[$_][$number_of_data_element] - $p{lowest}) - $shift  - $p{box_border}+1);
+			
+			my $y2;
+			if ($p{draw_from_base} == 0){	#if from lowest value, we can draw from the bottom of the box. (more or less..)
+				$y2 = int ( $image->{$p{box}}{bottom} - $p{box_border}+1);
+			}
+			else{						#otherwise we count upwards as many steps as there are from lowest_value to zero
+				$y2 = int ( $image->{$p{box}}{bottom} - $y_step * ($p{base} - $p{lowest}) - $shift  - $p{box_border}+1);	
+			}
+			
+			$image -> DrawRectangle (top => $y1, bottom => $y2, left => $x1, right => $x2, fill_color => $colors[$_], border_color=>$p{border_color}, border_thickness => $p{border_thickness});
+		}
+	}
+	
+	return;
 }
 
-
-
-=head2 Internal methods
-
-=head3 preset_defaults
-
-Sets many standard values so that the user does not need to specify them. Serves as a source of information if you want to know the possibilities..
-
-While this changes more often than it remains the same, please see the source! I will add the pod as soon as the interface is more or less stable.
-
-=cut
-
-sub preset_defaults{
-	my %p =(
-		name => "free",					#name of the box to put chart on.
+sub DrawGrid{
+	my $image = shift;
+	my $ref_scale_array = shift;
+	my @scale_array = @{$ref_scale_array};
+	my $y_step = shift;
+	my $shift = shift;
+	my %p = @_;
 	
-		scale_skip => 1,
-		base_line => 0,					#From here bars or whatever are drawn. If it is =0, negative numbers are drawn downwards e.g.
-		
-		#on vertical charts the vertical axis is named scale. To avoid confusion on horizontal charts where the horizontal axis is 'scale'
-		scale_expand_to_grid => 1,			#If the chart starts and ends at a "grid-value"
-		scale_annotation_show => 1,			#If the chart has a scale at one side (normally left; horizontal charts would be top or bottom)
-		scale_annotation_size => 22,
-		scale_annotation_rotate => 0,
-		scale_annotation_background => "white",
-		scale_annotation_padding => 0,
-		scale_padding_background => "white",
-		
-		scale_position => "left",
-		
-		#correspondingly, the horizontal axis on vertical charts is 'values'. Any better proposals?
-		values_annotation_show => 1,
-		
-		#unused from here:
-		box => "free",
-		
-		
-		
-		scale_tick_lenght => 0,
-		scale_tick_background => "white",
-		scale_to_border => 0,
-		
-		bars => "no",
-		bars_text_size => 22,
-		bars_text_rotate => 0,
-		bars_text_background => "white",
-		bars_text_padding => 0,
-		bars_text_position => "Center",
-		bars_tick_background => "white",
-		bars_skip =>1,
-		style => "bars", #nothing else at the moment :-(
-		@_
+	if ($p{orientation} =~ /vertical/){
+		foreach (@scale_array){
+			my $y = int ($image->{$p{box}}{bottom}- $y_step * ($_ - $p{lowest}) - $shift  - $p{box_border}+1);
+			$image -> DrawRectangle (
+				top => $y-($p{border_thickness}-1)/2, 		#-1 because otherwise the grid would be too fat, / 2 because it's done twice. Perhaps border_thickness is not the appropriate parameter anyway.
+				bottom => $y+ ($p{border_thickness}-1)/2, 
+				right => $image->{$p{box}}{right}-$p{border_thickness}, 
+				left => $image->{$p{box}}{left}+$p{border_thickness}, 
+				color => $p{grid_color});
+		}
+	}
+	else{
+		#unimplemented
+	}
+}
+
+sub Legend{
+	my $image = shift;
+	my %p = @_;
+	
+	my $square_size = int ($p{textsize} * .8);	#to be done by some intelligently set parameters..
+	my $padding = 5;	#ditto
+	
+	$image -> ArrayBox (%p);
+	$image -> Box(
+		%p,
+		name=> "$p{resize}_padding",
+		width => $padding,
+		#~ background => "white"
 	);
-	return %p;
+	$image -> Box(
+		%p,
+		name=> "$p{resize}_legend_squares",
+		width => $square_size,
+		#~ background => "orange"
+	);
+	
+	$image -> DrawRectangle(
+			top => $image->{$p{name}}{top}, 
+			bottom => $image->{$p{name}}{bottom}, 
+			left => $image->{"$p{resize}_legend_squares"}{left}, 
+			right => $image->{$p{name}}{right},  
+			fill_color => $p{background}, 
+			border_color => 'black'
+		)		if ($p{border});
+	
+	my ($legend_width, $legend_height);
+	
+	foreach (0.. scalar(@{$p{values_ref}})-1){
+		#~ print @{$p{colors}}[$_], "\t", @{$p{values_ref}}[$_], "\n";
+		
+		my ($width, $height) = $image -> GetTextSize(
+			text => @{$p{values_ref}}[$_],
+			textsize => $p{textsize},
+			rotate => $p{rotate}
+		);
+		#~ print "width: $width, height: $height\n";
+		
+		$legend_width = $width if ($width or $legend_width < $width);
+		$legend_height += $height;
+		
+		my $e = $image -> Annotate(%p, resize =>$p{name}, text => @{$p{values_ref}}[$_], align => 'left', text_position => 'west');
+		print "$e: @{$p{values_ref}}[$_]\t top_of_minibox: $image->{$e}{top}\t botton_of_minibox: $image->{$e}{bottom}\n";
+		my $center_of_minibox = ($image->{$e}{top} + $image->{$e}{bottom}) / 2;
+		
+		$image -> DrawRectangle(
+			top => $center_of_minibox - $square_size / 2, 
+			bottom => $center_of_minibox + $square_size / 2, 
+			left => $image->{"$p{resize}_legend_squares"}{left}, 
+			right => $image->{"$p{resize}_legend_squares"}{right},  
+			fill_color => @{$p{colors}}[$_], 
+			border_color => 'black'
+		);
+	}
+	
+	print "Size requested for legend: width: $legend_width, height: $legend_height"
+	
+	
 }
 
 1;

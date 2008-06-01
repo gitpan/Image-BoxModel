@@ -3,7 +3,7 @@ package Image::BoxModel;
 use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
 use Image::BoxModel::Text;		#Automatically makes a fitting box and puts text on it. Uses Lowlevel methods
@@ -57,7 +57,7 @@ sub new{
 		push @ISA, "Image::BoxModel::Backend::IM";
 		
 		$image->{IM} = new Image::Magick; 
-		$image->{IM} -> Set(size => $image->{width}."x".$image->{height}); 
+		$image->{IM} -> Set(size => ($image->{width}+1)."x".($image->{height}+1)); #IM calculates "human-style" 800x400 is from 0 to 799 and 0 to 399 :-) we -- width and height because we don't do human style in this module.
 		$image->{IM} -> Read("xc:$image->{background}"); 
 	}
 	elsif ($image -> {lib} eq "GD"){
@@ -68,8 +68,19 @@ sub new{
 		
 		$image->{GD} = new GD::Image($image->{width}+1,$image->{height}+1);
 		$image->{colors}{'#ffffff'} = $image->{GD}->colorAllocate(255,255,255);	#allocate white to ensure white background. This is perhaps not a clever move, but otherwise it will be drawn with the first color allocated, which quite surely is seldom desired.
-		my $a = $image->{GD}->useFontConfig(1);
-		print "Fontconfig not available!" if ($a == 0);
+		
+		#Fontconfig should not be enabled by default, even it is tempting to do so ;-). The examples will presumably produce many errors if fontconfig can't be enabled.
+		
+		if (exists $image->{fontconfig} and $image->{fontconfig} != 0){
+			my $a = $image->{GD}->useFontConfig(1);
+			if ($a == 0){
+				print "Fontconfig not available!";
+				$image->{fontconfig} = 0;	#to get(!) errors later on. If loading fails, then we don't want to pretend we loaded it.
+			}
+		}
+		else{
+			$image->{fontconfig} = 0;	#to avoid silly "uninitialized value"-errors later on
+		}
 	}
 	
 	bless $image, $class;
@@ -106,7 +117,7 @@ Image::BoxModel - Module for defining boxes on an image and putting things on th
 	text=>"Hello World!\nAligned right, positioned in the center (default)\nslightly rotated.", 
 	textsize=>"16",
 	rotate => "10" , 
-	font=> 'verdana.ttf', 
+	font=> './FreeSans.ttf', #must be present in the same directory. See PORTABILITY below.
 	fill => "yellow", 
 	background=>"green", 
 	align=>"Right"
@@ -125,7 +136,7 @@ Image::BoxModel - Module for defining boxes on an image and putting things on th
  #Save image to file
  $image -> Save(file=> "01_hello_world_$image->{lib}.png");
 
-More examples are in example/
+More examples are in examples/
 
 =head1 DESCRIPTION
 
@@ -133,7 +144,7 @@ More examples are in example/
 
 Have a way to draw things on images using the same code with different libraries.
 
-Use OO-style design to make the implementation of new library backends (library wrappers) easy. Only Image::Magick and GD present at the moment.
+Use OO-style design to make the implementation of new library backends (library wrappers) easy. Image::Magick and GD present at the moment.
 
 Use a box model to cut the original image into smaller rectangles. Afterwards objects can be drawn onto these boxes.
 
@@ -158,6 +169,52 @@ I have to rewrite much of my code because GD does many things different from how
 ..And now someone tells me about the Imager-module from the CPAN!
 
 With this module it is (should be) possible to just replace $image->{lib} in the constructor method and keep the rest of the code.
+
+=head2 PORTABILITY
+
+If you want to write portable code, you have to stick with the following things: (Portability between OSes and between backend libs)
+
+=head3 Don't use fontconfig
+
+You can profit from the wonderful possibilties offered by fontconfig, if you use this module on a system with fontconfig and GD as backend lib. 
+Anyhow, if you change the backend to Image::Magick later or take your code to a system without fontconfig, it will produce errors.
+
+Perhaps these considerations will lead to removing fontconfig support from Image::BoxModel. Perhaps 'font' will be mandatory for 'Text' and 'Annotate'. 
+Perhaps there will be a possibilty to specify a default font. 
+
+=head3 Copy the font files into your projects directory tree
+
+There is never a guarantee that fonts are present on a different system or on a different machine. You don't know if they are in the same place.
+
+=head3 Always use the 'font' parameter with 'Text' and 'Annotate'
+
+To be safe that the font is found (or an error is displayed), use
+
+ font=>'path/to/my/font.ttf'
+
+as a parameter with every 'Text' or 'Annotate' call.
+
+Of course, it is much more conventient to rely on the default settings of fontconfig or some libraries internal magic, but it beaks portability very easily.
+
+=head3 Don't use absolute paths
+
+Yes, of course not. ;-)
+
+It is tempting to use absolute paths to find fonts. Don't. Don't repeat my mistakes. :-)
+
+=head3 Don't use library-methods
+
+It is possible to use every method of the chosen library through the objects library-object:
+
+$image->{IM} -> Edge(radius => "10");
+
+This of course only with Image::Magick. First, because there will be no {IM} if using GD und second, because GD doesn't know about Edge.
+On the other hand, this code will only work with GD:
+
+ $image->{GD} -> arc(50,50,95,75,0,360,$image->Colors(color=>'blue'));
+
+There may be cases in which you will want to use library-specific code. Image::BoxModel doesn't implement all features of all libraries. Besides, this would be quite impossible. 
+Please think a minute before breaking portability. It might be better (for you) to help implement a feature into Image::BoxModel..
 
 =head2 FUTURE
 
@@ -184,7 +241,8 @@ In the world of vectors there is no smallest unit (is there?) and a point has no
 
 =head2 EXAMPLES
 
-There is a growing set of sample programs in the example/ directory together with their respective images. This should allow you to understand how things work and verify if your copy of the module works as expected.
+There is a growing set of sample programs in the examples/ directory together with their respective images. 
+This should allow you to understand how things work and verify if your copy of the module works as expected.
 To ensure they work even if you don't install the module into your system, they use a "use lib ("../lib"); Dunno if this is appropriate.
 
 =head2 SEE:
@@ -211,7 +269,6 @@ oh, please ;-)
 
 A bug at the moment is something that is broken, not something missing. :-)
 Bug reports are welcome.
-
 
 =head1 AUTHOR
 

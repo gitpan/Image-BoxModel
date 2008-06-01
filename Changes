@@ -1,5 +1,8 @@
 Revision history for Perl extension Image::BoxModel:
 
+0.12	Son Jun 1 2008 
+	- Chart: improved, has legend; IM-image-size bug fixed
+
 0.11	Mit Apr 30 2008 
 	- color support for GD, pod improved
 
