@@ -76,6 +76,8 @@ sub Box{
 	my %p = @_;	#%p holds the _p_arameters
 	my $resize = $p{resize} || 'free';
 	
+	die __PACKAGE__,"::Box: $resize does not exists. Die." unless $image ->{ $resize};
+	
 	die __PACKAGE__,"::Box: Mandatory parameter name missing. Die." unless $p{name};
 	return "$p{name} already exists. No box added" if (exists $image->{$p{name}});
 	die __PACKAGE__,"::Box: Mandatory parameter position missing. Die." unless $p{position};
@@ -87,7 +89,8 @@ sub Box{
 		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{height}, available: $image->{$resize}{height})\n" if ($p{height} > $image->{$resize}{height});
 	}
 	elsif ($p{position} eq "left" or $p{position} eq "right"){
-		return "Box: Please specify width > 0. No box added\n" unless (exists $p{width} and $p{width} > 0);
+		return "Box: Please specify width > 0. No box added\n" unless (exists $p{width} and $p{width} and $p{width} > 0);
+		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{width}, available: $image->{$resize}{width})\n" if ($p{width} > $image->{$resize}{width});
 	}
 	
 	$image -> print_message ("Add Box \"$p{name}\" with ", __PACKAGE__,"\n");

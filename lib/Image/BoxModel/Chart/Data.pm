@@ -61,7 +61,7 @@ sub ArrayHighestWidest{
 
 =head3 ExpandToGrid
 
- $value_on_grid = $image -> ExpandToGrid (value => $value, skip => $skip, base_line => $base_line);
+ $value_on_grid = $image -> ExpandToGrid (value => $value, skip => $skip, base => $base);
 
 =cut
 

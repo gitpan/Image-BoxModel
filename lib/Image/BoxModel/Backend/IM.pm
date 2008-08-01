@@ -10,8 +10,13 @@ sub DrawRectangle{
 		@_
 	);
 	
-	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
-	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
+	foreach ('left', 'right', 'bottom', 'top'){
+		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+		$p{$_} = sprintf ("%.0f", $p{$_}) unless ($image -> {precise});
+	}
+	
+	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	#same for bottom & top.
 	
 	
 	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
@@ -30,6 +35,37 @@ sub DrawRectangle{
 		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
 	}
 	$image -> print_message ("DrawRectangle with ",__PACKAGE__,"::DrawRectangle\n");
+}
+
+sub DrawCircle{
+	my $image = shift;
+	my %p = (
+		border_thickness => 1,
+		@_
+	);
+	
+	foreach ('left', 'right', 'bottom', 'top'){
+		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+	}
+	
+	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
+	
+	my $centerx = int (($p{left} + $p{right}) / 2);
+	my $centery = int (($p{top} + $p{bottom}) / 2);
+	my $width  = int (($p{right} - $p{left}) / 2);
+	my $height = int (($p{bottom} - $p{top}) / 2);
+	
+	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
+		print $image->{IM} -> Draw (primitive => "ellipse", points => "$centerx,$centery,$width,$height,0,360", stroke => $p{color}, fill=>$p{color}) ;
+	}
+	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
+		print $image->{IM} -> Draw (primitive => "ellipse", points => "$centerx,$centery,$width,$height,0,360", stroke => $p{border_color}, fill=>$p{fill_color}, strokewidth=> $p{border_thickness});
+	}
+	else{
+		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
+	}
+	$image -> print_message ("DrawCircle with ",__PACKAGE__,"::DrawCircle\n");
 }
 
 sub TextSize{

@@ -9,10 +9,15 @@ sub DrawRectangle{
 		border_thickness => 1,
 		@_
 	);
-	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
-	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
-	#~ print $p{border_thickness};
-	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
+	
+	foreach ('left', 'right', 'bottom', 'top'){
+		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+	}
+	
+	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	#same for bottom & top.
+	
+	if (exists $p{color}){	#this is the first invocation: a simple rectangle without border..
 		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{color}));	#Colors checks if color is present or adds it or rants
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
@@ -30,6 +35,50 @@ sub DrawRectangle{
 	}
 	
 	$image -> print_message ("DrawRectangle with ",__PACKAGE__,"::DrawRectangle\n");
+}
+
+sub DrawCircle{
+	my $image = shift;
+	my %p = (
+		border_thickness => 1,
+		@_
+	);
+	
+	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	#same for bottom & top.
+	
+	foreach ('left', 'right', 'bottom', 'top'){
+		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+	}
+	
+	my $centerx = ($p{left} + $p{right}) / 2;
+	my $centery = ($p{top} + $p{bottom}) / 2;
+	
+	if (exists $p{color}){	#this is the first invocation: a simple circle without border..
+		print $image->{GD} -> filledEllipse ($centerx,$centery,$p{right}-$p{left},$p{bottom}-$p{top},$image->Colors(color => $p{color}));	#Colors checks if color is present or adds it or rants
+	}
+	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: circle with border..
+		print $image->{GD} -> filledEllipse(
+			$centerx,
+			$centery,
+			$p{right}-$p{left},
+			$p{bottom}-$p{top},
+			$image->Colors(color => $p{border_color})
+		);
+		print $image->{GD} -> filledEllipse(	
+			$centerx,
+			$centery,
+			$p{right}-$p{left}-$p{border_thickness}*2,
+			$p{bottom}-$p{top}-$p{border_thickness}*2,
+			$image->Colors(color => $p{fill_color})
+		) unless ($p{border_thickness} >= ($p{right}-$p{left}) or $p{border_thickness} >= ($p{bottom}-$p{top}));
+	}
+	else{
+		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
+	}
+	
+	$image -> print_message ("DrawCircle with ",__PACKAGE__,"::DrawCircle\n");
+	#~ $image->filledEllipse($cx,$cy,$width,$height,$color)
 }
 
 sub TextSize{

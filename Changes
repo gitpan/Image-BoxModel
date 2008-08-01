@@ -1,5 +1,8 @@
 Revision history for Perl extension Image::BoxModel:
 
+0.13	Fre Aug 1 2008 
+	- Chart: many bugs fixed, does bars and points now
+
 0.12	Son Jun 1 2008 
 	- Chart: improved, has legend; IM-image-size bug fixed
 

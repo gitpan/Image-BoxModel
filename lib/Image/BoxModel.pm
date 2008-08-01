@@ -3,7 +3,8 @@ package Image::BoxModel;
 use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.12';
+our $VERSION = '0.13';
+use Carp;
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
 use Image::BoxModel::Text;		#Automatically makes a fitting box and puts text on it. Uses Lowlevel methods
@@ -49,15 +50,13 @@ sub new{
 	#This means that if GD is used, then the image-object has ::Backend::GD as its parent, so therefore the appropriate methods in ::Backend::GD are found.
 	#I don't know if this is good software design..
 	
-	#the "new-constructors need to be moved into ::Backend. Someday.
-	
 	if ($image -> {lib} eq "IM"){
 		require Image::Magick;
 		require Image::BoxModel::Backend::IM;
 		push @ISA, "Image::BoxModel::Backend::IM";
 		
 		$image->{IM} = new Image::Magick; 
-		$image->{IM} -> Set(size => ($image->{width}+1)."x".($image->{height}+1)); #IM calculates "human-style" 800x400 is from 0 to 799 and 0 to 399 :-) we -- width and height because we don't do human style in this module.
+		$image->{IM} -> Set(size => ($image->{width}+1)."x".($image->{height}+1)); #IM calculates "human-style" 800x400 is from 0 to 799 and 0 to 399 :-) we do width-- and height-- because we don't do human style in this module.
 		$image->{IM} -> Read("xc:$image->{background}"); 
 	}
 	elsif ($image -> {lib} eq "GD"){
@@ -100,11 +99,13 @@ Image::BoxModel - Module for defining boxes on an image and putting things on th
   
  #Define an object
  my  $image = new Image::BoxModel (
-	width => 800, 
-	height => 400, 
-	lib=> "GD", 			#[IM|GD]
-	verbose => "1",		#If you want to see which modules and submodules do what. 
-					#Be prepared to see many messages :-)
+	width 	=> 800, 
+	height	=> 400, 
+	lib		=> 'GD', 			#[IM|GD]
+	precise => '1'		#IM only: IM-backend will draw antialiased lines instead of rounding to integers before drawing.
+						#I don't know, if this is of interest to anyone..
+	verbose => '1',		#If you want to see which modules and submodules do what. 
+						#Be prepared to see many messages :-)
  );
 				
  #Define a box named "title" on the upper border
@@ -113,22 +114,22 @@ Image::BoxModel - Module for defining boxes on an image and putting things on th
  #Put some rotated text on the "title"-box and demonstrate some options. 
  #(verdana.ttf needs to be present in the same directory)
  print $image -> Text(
-	box => "title", 
-	text=>"Hello World!\nAligned right, positioned in the center (default)\nslightly rotated.", 
+	box 	=> "title", 
+	text	=>"Hello World!\nAligned right, positioned in the center (default)\nslightly rotated.", 
 	textsize=>"16",
-	rotate => "10" , 
-	font=> './FreeSans.ttf', #must be present in the same directory. See PORTABILITY below.
-	fill => "yellow", 
+	rotate 	=> "10" , 
+	font	=> './FreeSans.ttf', #must be present in the same directory. See PORTABILITY below.
+	fill 	=> "yellow", 
 	background=>"green", 
-	align=>"Right"
+	align	=>"Right"
  );
  
  print $image -> Box(position =>"left", width=>200, name=>"text_1", background =>'blue');	
  print $image -> Text(
-	box => "text_1", text =>"Some 'North-West'-aligned text.\n:-)", 
-	textsize=> "12", 
-	background=>"yellow", 
-	position =>"NorthWest"
+	box 		=> "text_1", text =>"Some 'North-West'-aligned text.\n:-)", 
+	textsize	=> "12", 
+	background	=>"yellow", 
+	position 	=>"NorthWest"
  );
  
  print $image -> Text(text => "Some more text on the free space.",textsize => 12, rotate=> "-30");
@@ -156,12 +157,12 @@ Make it easy to write wrapper-wrapper-wrappers and wrapper-wrapper-wrapper-wrapp
 
 =head2 ANOTHER IMAGING / CHARTING / WHATEVER MODULE?
 
-There are many Charting Modules out there and many Font Modules as well. 
+There are many Charting Modules and many Font Modules as well. 
 There are many concepts about how to layout elements on an image / page.
 
 This module will try hard to make the life of the user easier and the life of the developer more fun.
 
-It has backends for graphic libraries (and will have more) so that you can draw images using the same code with different libraries.
+It has backends for graphic libraries so that you can draw images using the same code with different libraries.
 
 Example: One user (me ;-) starts writing a perl script which produces some charts. 
 Because Image::Magick is common to me, I use it. After some time I find out that GD would be much faster and is able to do everything I need.
@@ -208,13 +209,12 @@ It is possible to use every method of the chosen library through the objects lib
 
 $image->{IM} -> Edge(radius => "10");
 
-This of course only with Image::Magick. First, because there will be no {IM} if using GD und second, because GD doesn't know about Edge.
+This of course only works with Image::Magick. First, because there will be no {IM} if using GD und second, because GD doesn't know about 'Edge'.
 On the other hand, this code will only work with GD:
 
  $image->{GD} -> arc(50,50,95,75,0,360,$image->Colors(color=>'blue'));
 
-There may be cases in which you will want to use library-specific code. Image::BoxModel doesn't implement all features of all libraries. Besides, this would be quite impossible. 
-Please think a minute before breaking portability. It might be better (for you) to help implement a feature into Image::BoxModel..
+There may be cases in which you will want to use library-specific code. Image::BoxModel doesn't implement all features of all libraries. Besides, this would be quite difficult. 
 
 =head2 FUTURE
 
@@ -256,12 +256,6 @@ L<Image::BoxModel::Text> - direct and save drawing of text
 L<Image::BoxModel::Chart> - charts (incomplete)
 
 L<Image::BoxModel::Color> - mini-tutorial on how to use colors
-
-=head1 CONCEPT (DISCLAIMER)
-
-THE MODULE WILL BE SUBJECT TO CHANGE, I guess.
-So does it's interface.
-DON'T USE IN PRODUCTION.
 
 =head1 BUGS
 
