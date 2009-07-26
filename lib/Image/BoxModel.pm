@@ -3,7 +3,7 @@ package Image::BoxModel;
 use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 use Carp;
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
@@ -37,14 +37,10 @@ sub new{
 		width => $image->{width}
 	};
 	
-	while (<DATA>){	#load all known color names into $image->{preset_colors}
-		chomp;
-		my ($html, $human_name) = split(/\t/,$_);
-		$image->{preset_colors}{$human_name} = $html;
-		#~ print $image -> {preset_colors}{$human_name} ,"-> $human_name\n"
-	}
-	close DATA;
-	
+	# The preset Colors (see below are read in). This is not done with DATA on purpose. 
+	# I had some strange errors when using Image::BoxModel while open Filehandles in calling programs
+	%{$image->{preset_colors}} = PresetColors();
+		
 	#Now follow the definitions of the backend-libraries
 	#Inheritance is granted by using the appropriate backend-modules.
 	#This means that if GD is used, then the image-object has ::Backend::GD as its parent, so therefore the appropriate methods in ::Backend::GD are found.
@@ -280,8 +276,9 @@ at your option, any later version of Perl 5 you may have available.
 =cut
 
 
-__DATA__
-#FFFAFA	snow
+#~ __DATA__
+sub PresetColors{
+	my $colors_text = '#FFFAFA	snow
 #FFFAFA	snow1
 #EEE9E9	snow2
 #FFC1C1	RosyBrown1
@@ -954,4 +951,17 @@ __DATA__
 #000000	black
 #000000	gray0
 #000000	grey0
-#000000	opaque
+#000000	opaque';
+
+my @lines = split (/\n/, $colors_text);
+my %colors;
+ foreach (@lines){	#load all known color names into $image->{preset_colors}
+		chomp;
+		my ($html, $human_name) = split(/\t/,$_);
+		$colors{$human_name} = $html;
+		#~ #print $image -> {preset_colors}{$human_name} ,"-> $human_name\n"
+	}
+	
+	#~ print foreach sort keys %colors;
+return %colors;
+}

@@ -24,8 +24,13 @@ print $image -> Chart (
 	
 	style => 'point',
 	
-	values_annotations => ['a','b','c']
+	values_annotations => ['a','b','c'],
 	
+	scale_expand_to_grid => 0,
+	
+	scale_skip => 1,
+	
+	font => './FreeSans.ttf',
 );
 (my $name = $0) =~ s/\.pl$//;
 $image -> Save(file=> $name."_$image->{lib}.png");

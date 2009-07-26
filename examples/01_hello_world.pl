@@ -8,7 +8,7 @@ use warnings;
 use Image::BoxModel;
   
 #Define an object
-my  $image = new Image::BoxModel (
+my $image = new Image::BoxModel (
 	width => 800, 
 	height => 400, 
 	lib=> "GD", 			#[IM|GD]

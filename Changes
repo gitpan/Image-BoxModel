@@ -1,5 +1,8 @@
 Revision history for Perl extension Image::BoxModel:
 
+0.14	Son Jul 26 2009 
+	- debug, ::Chart has points
+
 0.13	Fre Aug 1 2008 
 	- Chart: many bugs fixed, does bars and points now
 

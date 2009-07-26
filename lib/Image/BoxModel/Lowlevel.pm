@@ -4,6 +4,7 @@ use warnings;
 use strict;
 
 use POSIX;	#for ceil() in ::Box
+use Carp;
 
 =head1 NAME
 
@@ -76,11 +77,17 @@ sub Box{
 	my %p = @_;	#%p holds the _p_arameters
 	my $resize = $p{resize} || 'free';
 	
-	die __PACKAGE__,"::Box: $resize does not exists. Die." unless $image ->{ $resize};
+	#~ print "Name: $resize, Wert: ", $image->{$resize},"\n";
+	croak __PACKAGE__,"::Box: You tried to put a box on '$resize' which does not exists. Die." unless exists $image ->{ $resize};
 	
-	die __PACKAGE__,"::Box: Mandatory parameter name missing. Die." unless $p{name};
+	croak __PACKAGE__,"::Box: Mandatory parameter name missing. Die." unless $p{name};
 	return "$p{name} already exists. No box added" if (exists $image->{$p{name}});
-	die __PACKAGE__,"::Box: Mandatory parameter position missing. Die." unless $p{position};
+	croak __PACKAGE__,"::Box: Mandatory parameter position missing. Die." unless $p{position};
+	
+	foreach ('height', 'width'){
+		no warnings;
+		croak __PACKAGE__,"::Box: You tried to put $p{name} with the $_ of $p{$_} onto $p{resize} which is only ", $image->{$resize}{$_}, " in size." if ($p{$_}> $image->{$resize}{$_});
+	}
 	
 	#return if width or height is not specified. 
 	#(height wenn adding at top or bottom, width wen adding at left or right side.)
@@ -146,6 +153,8 @@ sub Box{
 	
 	$image->{$resize}{height} = $image->{$resize}{bottom} - $image->{$resize}{top};	#calculate these values for later use.. laziness
 	$image->{$resize}{width} = $image->{$resize}{right} - $image->{$resize}{left};
+	
+	#~ print "habe Box $p{name} erzeugt\n";
 	
 	return;
 }

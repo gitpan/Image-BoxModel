@@ -20,7 +20,7 @@ my $image = new Image::BoxModel::Chart (
 
 $image -> Annotate (text=> 'some friends using this module', padding_top=>10, textsize => 20, padding_bottom=> 20, font => './FreeSans.ttf');
 
-$image -> Annotate (text => "happiness", box_position => "left", rotate=>-90, textsize => 15, padding_right => "10", text_position => "Center", font => './FreeSans.ttf');
+$image -> Annotate (text => "happiness\nis everything", box_position => "left", rotate=>-90, textsize => 15, padding_right => "10", text_position => "Center", font => './FreeSans.ttf');
 
 $image -> Annotate (text => 'version of Image::BoxModel::Chart', textsize => 15, box_position => "bottom", font => './FreeSans.ttf');
 
@@ -29,12 +29,13 @@ my @val_ann = ['0.01', '0.04', '0.09', '0.10', '0.11', "(future)\nstable\nreleas
 
 $image -> Legend(
 	font => './FreeSans.ttf',
-	#~ textsize => 12,
+	textsize => 15,
 	name => 'legend',
 	values_annotations => ['Marc','Joss','Joe','Kim','Frederic','X','y',"other\nfriends"],
 	border => 1,
 	padding_top => 0,
-	position => 'right'	#left | right only at the moment. bug.
+	position => 'right',	#left | right only at the moment. bug.
+	#~ rotate => '-30'
 );
 
 print $image -> Chart (

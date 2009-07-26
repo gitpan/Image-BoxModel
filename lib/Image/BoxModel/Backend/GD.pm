@@ -2,6 +2,7 @@ package Image::BoxModel::Backend::GD;
 
 use strict;
 use warnings;
+use Carp;
 
 sub DrawRectangle{
 	my $image = shift;
@@ -11,7 +12,7 @@ sub DrawRectangle{
 	);
 	
 	foreach ('left', 'right', 'bottom', 'top'){
-		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+		confess __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
 	}
 	
 	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
@@ -84,6 +85,8 @@ sub DrawCircle{
 sub TextSize{
 	my $image = shift;
 	my %p = @_;
+	
+	#~ print "GD:TextSize: font: $p{font}";
 	
 	my (undef, undef, undef, @corner) = gd_text_size($p{font}, $p{textsize}, $p{text});
 	
@@ -225,7 +228,10 @@ sub Save{
 #this sub does some calculations for some routines. As soon as all GD-work is done here, I will see if this sub is still the best way to do it..
 sub gd_text_size{
 	my ($font, $size, $text) = @_;
-	$font = './FreeSans.ttf' unless (-f $font);
+	no warnings;
+	#~ print "gd_text_size: text: $text font: $font\n";
+	
+	$font = './FreeSans.ttf' unless ($font and -f $font);
 	my @corner;
 	
 	my @bounds = GD::Image->stringFT(0,$font,$size,0,0,0,"Ä", {resolution=>"72,72"});
