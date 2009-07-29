@@ -62,7 +62,6 @@ sub Chart{
 		scale_annotation_skip		=> 1,
 		scale_ticks_length			=> 5,
 		scale_ticks_thickness		=> 1,
-		scale_ticks_border			=> 0,
 		scale_expand_to_grid		=> 1,	# if scale is expanded to a value which's scale annotation, tick and grid is printed / drawn
 		
 		values_annotation_size       => 12,
@@ -74,7 +73,6 @@ sub Chart{
 		values_annotation_skip		 => 1,
 		values_ticks_length			 => 5,
 		values_ticks_thickness		 => 1,
-		values_ticks_border			 => 0,
 		
 		box_border       => 0,
 		box              => 'free',
@@ -99,6 +97,8 @@ sub Chart{
 	
 	croak "Mandatory parameter 'values.+' not specified. Howto call value-parameters: values[any_character_or_number]. No chart drawn.\n" unless @datasets;
 	
+	$p{thickness} = 20 unless (exists $p{thickness} and $p{thickness}); # Ensures that points can be drawn. Can't draw circles with an undefined or 0 size.
+	
 	
 	#change this as soon as orientation 'horizontal' is implemented
 	return "Sorry, orientation $p{orientation} unimplemented" unless ($p{orientation} =~ /vertical/i);
@@ -112,13 +112,11 @@ sub Chart{
 	unless (exists $in{scale_skip} and $in{scale_skip} and $in{scale_skip} > 0){ # scale_skip *must* be a positive value. 0 is deadly later on, negatives son't make much sense to me..
 		$p{scale_skip} =$image -> ScaleSkip(%p);
 	}
-	#~ return "Scale_skip must not be 0. Can't draw chart.\n" unless $p{scale_skip};
 	
-	# If points /or something which needs some space above or below it's line) are drawn, there needs to be extra space on the chart:
-	if ($p{style} eq 'point'){
-		$p{lowest}  -= .5;
-		$p{highest} += .5;
-	}
+	# points and lines need some space.
+	# this can be improved, because if scale is extended and after this there is enough space, there is no necessity for this.
+	$p{box_border} += $p{thickness}/ 1.5 if ($p{style} =~ /point/i or $p{style} =~ /line/); 
+		
 		
 	if ($p{scale_expand_to_grid}){	#expand highest&lowest to ensure that the chart ends at a value which's scale-annotation is printed (if desired :-)
 		$p{highest} = $image-> ExpandToGrid (value => $p{highest}, skip => $p{scale_skip}, base => $p{base});
@@ -165,7 +163,7 @@ sub Chart{
 	$p{highest} = $scale_array[-1] if ($p{highest} < $scale_array[-1]);	#and the same for highest
 	
 	#boxes for scale-annotation
-	if ($p{scale_annotation_show}){
+	if ($p{scale_annotation_show} and $p{style} !~ /stapled_points/i){
 		$image -> ArrayBox (
 			values_ref 	=> \@scale_array, 
 			textsize 	=> $p{scale_annotation_size}, 
@@ -188,7 +186,7 @@ sub Chart{
 	}
 	
 	# box for scale-ticks_length
-	if ($p{scale_ticks_length}){
+	if ($p{scale_ticks_length} and $p{style} !~ /stapled_points/i){
 		$image -> Box(
 			resize 		=> $p{box},
 			position	=> $p{scale_position},
@@ -200,7 +198,7 @@ sub Chart{
 	}
 	
 	# boxes for values_annotation
-	if ($p{values_annotation_show}){
+	if ($p{values_annotation_show} ){
 		$image -> ArrayBox (
 			values_ref 	=> $p{values_annotations},
 			textsize 	=> $p{values_annotation_size}, 
@@ -250,13 +248,13 @@ sub Chart{
 		);
 	}
 	
-	if ($p{scale_ticks_length}){
+	if ($p{scale_ticks_length} and $p{style} !~ /stapled_points/i ){ # stapled points are piled up, not spread over the whole chart..
 		$image -> DrawTicks(
 			array			=> \@scale_array,
 			orientation 	=> $p{orientation},
 			lowest 			=> $p{lowest},
 			highest 		=> $p{highest},
-			box_border 		=> $p{scale_ticks_border},
+			box_border 		=> $p{box_border},
 			thickness		=> $p{scale_ticks_thickness},
 			box_to_draw_on	=> "$p{box}_scale_ticks",
 			box_to_measure_from => $p{box}
@@ -269,7 +267,7 @@ sub Chart{
 			orientation 	=> 'horizontal', # fix this!
 			lowest 			=> 0,
 			highest 		=> scalar(@{$p{values_annotations}}),
-			box_border 		=> $p{values_ticks_border},
+			box_border 		=> $p{box_border},
 			thickness		=> $p{values_ticks_thickness},
 			box_to_draw_on	=> "$p{box}_values_ticks",
 			box_to_measure_from => $p{box}
@@ -311,7 +309,13 @@ sub Chart{
 		box 			=> $p{box}
 	) unless ($p{style} =~ /stapled_points/i); #no grid if stapled points, because these are just stapled..
 	
+	####
+	# Print the chart (finally, after all surroundings are properly done)
+	####
 	if ($p{orientation} =~ /vertical/i){
+		
+		my @coordinates if ($p{style} =~ /line/i); # for lines we need to wait until we have all points and draw a whole dataset at once.
+		
 		foreach my $number_of_data_element (0 .. $max_values-1){
 			
 			#left border of "reserved" space for bars / points etc. of given dataset
@@ -321,7 +325,7 @@ sub Chart{
 				pos_max => $image->{$p{box}}{right} + $p{box_border},
 				val_min => 0,
 				val_max => $max_values,
-				val     => $number_of_data_element +.5 # half a step inside
+				val     => $number_of_data_element +.5 # half a step inside -> middle of the space of this value
 							- $p{bar_thickness} / 2    # - half of the space for all the bars
 			);
 			
@@ -330,10 +334,10 @@ sub Chart{
 				pos_max => $image->{$p{box}}{right} + $p{box_border},
 				val_min => 0,
 				val_max => $max_values,
-				val     => $number_of_data_element +.5 + $p{bar_thickness} / 2  # half a step inside
+				val     => $number_of_data_element +.5 + $p{bar_thickness} / 2  
 			);
 			
-			foreach (0.. $#datasets){
+			foreach (0.. $#datasets){ # now the correspondent slice of every dataset is printed
 				
 				my $x1 = where_between(
 					pos_min => $x_leftmost,
@@ -389,13 +393,17 @@ sub Chart{
 						border_thickness => $p{border_thickness}
 					);
 				}
-				elsif ($p{style} =~ /stapled_points/i){ #stapled points are as high as broad. 
-														#therefore they may not in all fit onto the chart.
-														#this is a bug.
+				elsif ($p{style} =~ /stapled_points/i){ 
+					
+					my $shrink_to_fit = 1;
+					
+					$shrink_to_fit /= 2 while ($y2 - ($x2-$x1)/2 -  ($x2-$x1)* $datasets[$_][$number_of_data_element]*$shrink_to_fit - ($x2-$x1)/2 
+						< $image -> {$p{box}}{top});
+														
 					for (my $e = 0; $e < $datasets[$_][$number_of_data_element];$e++){
 						$image -> DrawCircle (
-							top			=> $y2 - ($x2-$x1)/2 - ($x2-$x1)*$e*1.15 - ($x2-$x1)/2,	#first 1/2 of width off 0, then $e*width, then half width
-							bottom		=> $y2 - ($x2-$x1)/2 - ($x2-$x1)*$e*1.15 + ($x2-$x1)/2,
+							top			=> $y2 - ($x2-$x1)/2 - ($x2-$x1)*$e*$shrink_to_fit - ($x2-$x1)/2,	#first 1/2 of width off 0, then $e*width, then half width
+							bottom		=> $y2 - ($x2-$x1)/2 - ($x2-$x1)*$e*$shrink_to_fit + ($x2-$x1)/2,
 							left		=> $x1,
 							right		=> $x2,
 							fill_color => $colors[$_], 
@@ -406,26 +414,59 @@ sub Chart{
 				}
 				elsif ($p{style} =~ /point/i){
 					
-					$y2 = where_between (
-						pos_min => $image->{$p{box}}{bottom} - $p{box_border},
-						pos_max => $image->{$p{box}}{top} + $p{box_border},
-						val_min => $p{lowest},
-						val_max => $p{highest},
-						val     => $datasets[$_][$number_of_data_element] + 1
-					);
+					#~ $y2 = where_between (
+						#~ pos_min => $image->{$p{box}}{bottom} - $p{box_border},
+						#~ pos_max => $image->{$p{box}}{top} + $p{box_border},
+						#~ val_min => $p{lowest},
+						#~ val_max => $p{highest},
+						#~ val     => $datasets[$_][$number_of_data_element] + 1
+					#~ );
 					
 					$image -> DrawCircle (
-						top 	=> $y1 + (($y2 - $y1)) / 2, 		
-						bottom 	=> $y1 - (($y2 - $y1)) / 2, 
-						left 	=> $x1 + ($x2 - $x1) + (($y2 - $y1)) / 2, 
-						right 	=> $x1 + ($x2 - $x1) - (($y2 - $y1)) / 2,
+						top 	=> $y1 + ($p{thickness}) / 2, 		
+						bottom 	=> $y1 - ($p{thickness}) / 2, 
+						left 	=> $x1 + ($x2 - $x1)/2 + ($p{thickness}) / 2, 
+						right 	=> $x1 + ($x2 - $x1)/2 - ($p{thickness}) / 2,
 						fill_color => $colors[$_], 
 						border_color=>$p{border_color}, 
 						border_thickness => $p{border_thickness}
 					);
 				}
+				elsif ($p{style} =~ /line/i){ 	# just push all coordinates into @coordinates and draw afterwards.
+												# This might perhaps be a good idea for all styles..
+					$coordinates[$_][$number_of_data_element]{x} = $x1+ ($x2 - $x1)/2;
+					$coordinates[$_][$number_of_data_element]{y} = $y1;
+				}
 				else {
 					print "Sorry. Style $p{style} is (still) unimplemented.\n";
+				}
+			}
+			if ($p{style} =~ /line/i){
+				foreach my $dataset (0 .. scalar(@coordinates)-1){
+					
+					foreach my $number (0 .. scalar (@{$coordinates[$dataset]})-1){
+						
+						if ($p{thickness} and $p{thickness} > 1){
+							$image -> DrawCircle(
+								top 	=> $coordinates[$dataset][$number]{y} - $p{thickness} / 2,
+								bottom	=> $coordinates[$dataset][$number]{y} + $p{thickness} / 2,
+								left	=> $coordinates[$dataset][$number]{x} - $p{thickness} / 2,
+								right	=> $coordinates[$dataset][$number]{x} + $p{thickness} / 2,
+								color 	=> $colors[$dataset]
+							);
+						}
+						
+						if ($number > 0){
+							$image -> DrawLine(
+								x1 		=> $coordinates[$dataset][$number-1]{x},
+								y1 		=> $coordinates[$dataset][$number-1]{y},
+								x2 		=> $coordinates[$dataset][$number]{x},
+								y2 		=> $coordinates[$dataset][$number]{y},
+								color 	=> $colors[$dataset],
+								thickness=>$p{thickness}
+							);
+						}
+					}
 				}
 			}
 		}
@@ -537,6 +578,14 @@ sub DrawTicks{
 	my $image = shift;
 	my %p = @_;
 	
+	#~ $image -> DrawRectangle(
+		#~ top	=> $image->{$p{box_to_draw_on}}{top},
+		#~ bottom => $image->{$p{box_to_draw_on}}{bottom},
+		#~ right	=> $image->{$p{box_to_draw_on}}{right},
+		#~ left => $image->{$p{box_to_draw_on}}{left},
+		#~ color => 'orange',
+		#~ );
+	
 	if ($p{orientation} =~ /vertical/){	
 		foreach (@{$p{array}}){
 			
@@ -551,17 +600,17 @@ sub DrawTicks{
 			$image -> DrawRectangle (
 				top 	=> $y-($p{thickness}-1)/2, # see above, DrawGrid
 				bottom 	=> $y+ ($p{thickness}-1)/2, 
-				right 	=> $image -> {$p{box_to_draw_on}}{right} - $p{box_border},
-				left 	=> $image -> {$p{box_to_draw_on}}{left}  + $p{box_border},
+				right 	=> $image -> {$p{box_to_draw_on}}{right},
+				left 	=> $image -> {$p{box_to_draw_on}}{left},
 				color 	=> 'black' # to be dony by parameter
 			);
 		}
 	}
 	else{
-		for (my $c = 0; $c < scalar(@{$p{array}}); $c++){
+		for my $c (0 .. scalar(@{$p{array}})-1){
 			my $x = where_between (
-				pos_min => $image->{$p{box_to_measure_from}}{left} + $p{box_border},
-				pos_max => $image->{$p{box_to_measure_from}}{right} - $p{box_border},
+				pos_min => $image->{$p{box_to_measure_from}}{left} - $p{box_border},
+				pos_max => $image->{$p{box_to_measure_from}}{right} + $p{box_border},
 				val_min => $p{lowest},
 				val_max => $p{highest},
 				val		=> $c +.5 # middle of the bar / point / whatever is in the middle between 2 borders..
@@ -570,8 +619,8 @@ sub DrawTicks{
 			$image -> DrawRectangle (
 				left 	=> $x-($p{thickness}-1)/2, # see above, DrawGrid
 				right 	=> $x+ ($p{thickness}-1)/2, 
-				bottom 	=> $image -> {$p{box_to_draw_on}}{bottom} - $p{box_border},
-				top 	=> $image -> {$p{box_to_draw_on}}{top}  + $p{box_border},
+				bottom 	=> $image -> {$p{box_to_draw_on}}{bottom},
+				top 	=> $image -> {$p{box_to_draw_on}}{top},
 				color 	=> 'black' # to be dony by parameter
 			);
 		}

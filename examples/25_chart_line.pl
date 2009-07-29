@@ -1,5 +1,9 @@
 #! /usr/bin/perl
 
+# Pay attention with stapled_points! It may happen, that you staple mor points that fit on the chart. 
+# Please check the result and see if you like it. 
+# Better solutions are welcome.
+
 use lib ("../lib");	#if you don't install the module but just untar & run example
 
 use strict;
@@ -19,16 +23,16 @@ my $image = new Image::BoxModel::Chart (
 );	
 
 print $image -> Chart (
-	dataset_1 => [6,4,8],
-	dataset_2 => [1,2,3],
+	dataset_1 => [16,4,8,3,6,4,3],
+	dataset_2 => [1,2,3,3,0,4,3],
+	dataset_3 => [0,1,2,3,2,1,0],
 	
-	style => 'point',
+	style => 'line',
 	
-	values_annotations => ['a','b','c'],
+	thickness => 15,
 	
-	scale_expand_to_grid => 0,
+	values_annotations => ['a','b','c', 'd', 'e', 'f', 'g'],
 	
-	scale_skip => 1,
 	
 	font => './FreeSans.ttf',
 );

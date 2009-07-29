@@ -435,6 +435,8 @@ sub rotation{
 	my ($x, $y, $x_center, $y_center, $angle) = @_;
 	#~ print "X: $x Y: $y x-center: $x_center y-center: $y_center angle: $angle\n";
 	
+	return ($x, $y) if ($angle == 0); # if angle == 0 then return immediately. 1st because there's nothing to do, 2nd to prevent from division by 0
+
 	$angle = $image->{PI} / (360 / $angle) * 2;
 	
 	my $sin = sin ($angle);

@@ -20,8 +20,9 @@ my $image = new Image::BoxModel::Chart (
 $image -> Annotate (text=> 'Skip Grid and Ticks For Some Values', padding_top=>10, textsize => 20, padding_bottom=> 20, font => './FreeSans.ttf');
 
 $image -> Annotate (text => "High Values", box_position => "left", rotate=>-90, textsize => 20, padding_right => "10", text_position => "Center", font => './FreeSans.ttf');
+$image -> Annotate (text => "(skip 100, determined automatically)", , box_position => "left", rotate=>-90, textsize => 15, padding_right => "10", text_position => "Center", font => './FreeSans.ttf');
 
-$image -> Annotate (text => 'Something', textsize => 15, box_position => "bottom", font => './FreeSans.ttf');
+$image -> Annotate (text => 'Something (long ticks, see?)', textsize => 15, box_position => "bottom", font => './FreeSans.ttf');
 
 print $image -> Chart (
 	dataset_00 => [12,	543,	32,		234,	124,	0,		34],
@@ -42,7 +43,7 @@ print $image -> Chart (
 	scale_annotation_rotate => '0',
 	scale_annotation_size => '15',
 	
-	values_annotations => [1,2],
+	values_annotations => [1,2,3,4,5,6,7],
 	values_annotation_position => 'bottom',
 	values_annotation_size => 15,
 	
@@ -51,4 +52,5 @@ print $image -> Chart (
 	orientation => 'vertical',	#vertical|horizontal: being implemented
 );
 
-$image -> Save(file=> "23_chart_bars_$image->{lib}.png");
+(my $name = $0) =~ s/\.pl$//;
+$image -> Save(file=> $name."_$image->{lib}.png");

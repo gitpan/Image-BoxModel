@@ -4,7 +4,49 @@ use strict;
 use warnings;
 use Carp;
 
-sub DrawRectangle{
+sub DrawLine{ 	# draws a filled, polygon, really..
+				# For completeness there should be a method to draw lines with a border. I don't implement it at the moment.
+	my $image = shift;
+		my %p = (
+		@_
+	);
+	
+	foreach ('x1', 'x2', 'y1', 'y2'){
+		confess __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+	}
+	
+	if ($p{thickness} and $p{thickness}>1){
+		# find out how by how many degrees the line is rotated relatively to a vertical line:
+		use Math::Trig;
+		# atan2: angle of line between vertical line (top to bottom) and line (x-compnent of line, y-component of line)
+		my $angle =  rad2deg(atan2($p{x2}-$p{x1}, $p{y2}-$p{y1}));
+		
+		# now think of our line as a rotated rectangle. this makes it very easy to draw lines of a certain thickness. :-)
+		# think of a rectangle where half of the thickness goes to one side of the line and the other half to the other side..
+		
+		my ($x1_1, $y1_1) = $image -> rotation ($p{x1}+ $p{thickness}/2, $p{y1}, $p{x1}, $p{y1}, -$angle);
+		my ($x1_2, $y1_2) = $image -> rotation ($p{x1}- $p{thickness}/2, $p{y1}, $p{x1}, $p{y1}, -$angle);
+		
+		my ($x2_1, $y2_1) = $image -> rotation ($p{x2}+ $p{thickness}/2, $p{y2}, $p{x2}, $p{y2}, -$angle);
+		my ($x2_2, $y2_2) = $image -> rotation ($p{x2}- $p{thickness}/2, $p{y2}, $p{x2}, $p{y2}, -$angle); 
+		
+		my $poly = new GD::Polygon;
+		$poly->addPt($x1_1, $y1_1);
+		$poly->addPt($x1_2, $y1_2);
+		
+		$poly->addPt($x2_2, $y2_2);
+		$poly->addPt($x2_1, $y2_1);
+		
+		print $image->{GD} -> filledPolygon($poly,$image->Colors(color => $p{color}));
+	}
+	else { # thickness <=1: simply draw a line..
+		print $image->{GD} -> line($p{x1}, $p{y1}, $p{x2}, $p{y2},$image->Colors(color => $p{color}));
+	}
+	
+	$image -> print_message ("DrawLine with ",__PACKAGE__,"::DrawLine\n");
+}
+
+sub DrawRectangle{ # used for horizontal & vertical lines, too
 	my $image = shift;
 	my %p = (
 		border_thickness => 1,
@@ -38,7 +80,7 @@ sub DrawRectangle{
 	$image -> print_message ("DrawRectangle with ",__PACKAGE__,"::DrawRectangle\n");
 }
 
-sub DrawCircle{
+sub DrawCircle{ # draws an ellipse, really.
 	my $image = shift;
 	my %p = (
 		border_thickness => 1,
@@ -84,7 +126,7 @@ sub DrawCircle{
 
 sub TextSize{
 	my $image = shift;
-	my %p = @_;
+	my %p = @_;	# shouln't it fall back to a standard font?
 	
 	#~ print "GD:TextSize: font: $p{font}";
 	
@@ -96,7 +138,7 @@ sub TextSize{
 sub DrawText{
 	my $image = shift;
 	my %p = (
-		font => './FreeSans.ttf',
+		font => './FreeSans.ttf', # fix this. It should fall back to a font stored here in the lib somewhere.
 		@_
 	);
 	

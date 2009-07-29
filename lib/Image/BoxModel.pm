@@ -3,7 +3,7 @@ package Image::BoxModel;
 use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 use Carp;
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives
@@ -145,12 +145,6 @@ Use OO-style design to make the implementation of new library backends (library 
 
 Use a box model to cut the original image into smaller rectangles. Afterwards objects can be drawn onto these boxes.
 
-Make it easy to write wrappers for the basic functionality of the module. Some are under development already, like the Annotate method in ::Text which defines a fitting box and puts text on it.
-
-Make it easy to write wrapper-wrappers like ::Chart (far from being finished), which use basic functionality as well as wrappers.
-
-Make it easy to write wrapper-wrapper-wrappers and wrapper-wrapper-wrapper-wrappers. ;-)
-
 =head2 ANOTHER IMAGING / CHARTING / WHATEVER MODULE?
 
 There are many Charting Modules and many Font Modules as well. 
@@ -214,7 +208,7 @@ There may be cases in which you will want to use library-specific code. Image::B
 
 =head2 FUTURE
 
-Charts
+Charts: being done
 
 More graphic primitives
 
@@ -257,7 +251,6 @@ L<Image::BoxModel::Color> - mini-tutorial on how to use colors
 
 oh, please ;-)
 
-A bug at the moment is something that is broken, not something missing. :-)
 Bug reports are welcome.
 
 =head1 AUTHOR

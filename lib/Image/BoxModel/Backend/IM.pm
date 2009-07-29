@@ -3,6 +3,20 @@ package Image::BoxModel::Backend::IM;
 use strict;
 use warnings;
 
+sub DrawLine{
+	my $image = shift;
+	my %p = (
+		border_thickness => 1,
+		@_
+	);
+	
+	foreach ('x1', 'x2', 'y1', 'y2'){
+		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
+	}
+	
+	print $image->{IM} -> Draw (primitive => 'line', points => "$p{x1},$p{y1},$p{x2},$p{y2}", stroke => $p{color}, strokewidth => $p{thickness}); 
+}
+
 sub DrawRectangle{
 	my $image = shift;
 	my %p = (
