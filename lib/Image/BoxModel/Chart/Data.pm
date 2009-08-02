@@ -28,12 +28,12 @@ Feed it an array and get the highest and the lowest value of it.
 =cut
 
 sub ArrayHighestLowest{
-	my $image = shift;
-	my @array = @_;
+	my $image 	= shift;
+	my @array 	= @_;
 	
-	@array = sort {$a <=> $b} @array;
+	@array 		= sort {$a <=> $b} @array;
 	my $highest = $array[-1];
-	my $lowest = $array[0];
+	my $lowest 	= $array[0];
 	
 	return $highest, $lowest;
 }
@@ -47,16 +47,16 @@ You can specify scale_skip_minimum, if you want, but it will be ignored, if you 
 =cut
 
 sub ScaleSkip{
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	foreach ('highest', 'lowest'){
 		croak ("You need to specify $_") unless (exists $p{$_});
 	}
 	my $maximum_lines;
 	$maximum_lines = $p{maximum_lines} or $maximum_lines = 10;
 	
-	my $range = $p{highest}-$p{lowest} -1; #This is a little trick. I want 10, 20, 50, 100, 200, 500 etc. to be in the lower group. This is much easier accomplished that way.
-	$range = $range * 10 / $maximum_lines; # next trick. If you want 20 lines, then the range is halved. this way scale_skip becomes half as big as it defaultely would.
+	my $range 	= $p{highest}-$p{lowest} -1; #This is a little trick. I want 10, 20, 50, 100, 200, 500 etc. to be in the lower group. This is much easier accomplished that way.
+	$range 		= $range * 10 / $maximum_lines; # next trick. If you want 20 lines, then the range is halved. this way scale_skip becomes half as big as it defaultely would.
 
 	my $length = length (ceil($range));
 		
@@ -93,8 +93,8 @@ Feed it an array of numbers or text and get how much space the largest value nee
 =cut
 
 sub ArrayHighestWidest{
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	
 	my $widest  = 0;
 	my $highest = 0;
@@ -114,24 +114,24 @@ sub ArrayHighestWidest{
 =cut
 
 sub ExpandToGrid{
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	my $step;	#if we step upwards or downwards
 	my $counter = 0;
 	
 	if ($p{value} > $p{base}){
-		$step = $p{skip};
+		$step 	= $p{skip};
 		$counter++ while ($step * $counter + $p{base} < $p{value});	#0 * step .. 1 * step until bigger than the value (normally the highest of the array..)
 	}
 	elsif ($p{value} < $p{base}){
-		$step = -$p{skip};
+		$step 	= -$p{skip};
 		$counter++ while ($step * $counter + $p{base} > $p{value});
 	}
 	else {
 		return $p{value};	#if the given value equals to the base line, no expansion is needed.
 	}
 	
-	$p{value} = $step * $counter + $p{base}; 
+	$p{value} 	= $step * $counter + $p{base}; 
 	
 	return $p{value};
 }
@@ -143,8 +143,8 @@ sub ExpandToGrid{
 =cut
 
 sub BuildScaleArray{ 
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	my @scale_array;
 	my $counter = 1;
 	
@@ -173,8 +173,8 @@ sub BuildScaleArray{
 }
 
 sub PopulateArrays{
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	
 	my (@datasets, @colors, @bordercolors);	#@values is always an 2d-array holding the data-sets.
 	my $counter = 0;
@@ -189,7 +189,7 @@ sub PopulateArrays{
 		
 		my ($h, $l) = $image->ArrayHighestLowest(@{$datasets[$counter]});
 		$p{highest} = $h unless (exists $p{highest} and $p{highest} > $h);
-		$p{lowest} = $l unless (exists $p{lowest} and $p{lowest} < $l);
+		$p{lowest}  = $l unless (exists $p{lowest} and $p{lowest} < $l);
 		$max_values = scalar (@{$datasets[$counter]}) unless ($max_values and $max_values > @{$datasets[$counter]});
 		
 		$counter ++;

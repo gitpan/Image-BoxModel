@@ -14,7 +14,12 @@ sub DrawLine{
 		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
 	}
 	
-	print $image->{IM} -> Draw (primitive => 'line', points => "$p{x1},$p{y1},$p{x2},$p{y2}", stroke => $p{color}, strokewidth => $p{thickness}); 
+	print $image->{IM} -> Draw (
+		primitive => 'line', 
+		points => "$p{x1},$p{y1},$p{x2},$p{y2}", 
+		stroke => $p{color}, 
+		strokewidth => $p{thickness}
+	); 
 }
 
 sub DrawRectangle{
@@ -37,7 +42,13 @@ sub DrawRectangle{
 		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{color}, fill=>$p{color}) ;
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
-		print $image->{IM} -> Draw (primitive => "rectangle", points => "$p{left},$p{top},$p{right},$p{bottom}", stroke => $p{border_color}, fill=>$p{border_color});
+		print $image->{IM} -> Draw (
+			primitive => "rectangle", 
+			points => "$p{left},$p{top},$p{right},$p{bottom}", 
+			stroke => $p{border_color}, 
+			fill=>$p{border_color}
+		);
+		
 		print $image->{IM} -> Draw (
 			primitive => "rectangle", 
 			points => ($p{left}+$p{border_thickness}).",".($p{top}+$p{border_thickness}).",".($p{right}-$p{border_thickness}).",".($p{bottom}-$p{border_thickness}), 
@@ -62,19 +73,30 @@ sub DrawCircle{
 		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
 	}
 	
-	($p{left}, $p{right}) = ($p{right}, $p{left}) 	   if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
-	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); #same for bottom & top.
+	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, the border will not be drawn correctly.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	#same for bottom & top.
 	
 	my $centerx = int (($p{left} + $p{right}) / 2);
 	my $centery = int (($p{top} + $p{bottom}) / 2);
-	my $width  = int (($p{right} - $p{left}) / 2);
-	my $height = int (($p{bottom} - $p{top}) / 2);
+	my $width   = int (($p{right} - $p{left}) / 2);
+	my $height  = int (($p{bottom} - $p{top}) / 2);
 	
 	if (exists $p{color}){	#this is the first invocation: a simple rectangle with no border..
-		print $image->{IM} -> Draw (primitive => "ellipse", points => "$centerx,$centery,$width,$height,0,360", stroke => $p{color}, fill=>$p{color}) ;
+		print $image->{IM} -> Draw (
+			primitive => "ellipse", 
+			points => "$centerx,$centery,$width,$height,0,360", 
+			stroke => $p{color}, 
+			fill=>$p{color}
+		);
 	}
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
-		print $image->{IM} -> Draw (primitive => "ellipse", points => "$centerx,$centery,$width,$height,0,360", stroke => $p{border_color}, fill=>$p{fill_color}, strokewidth=> $p{border_thickness});
+		print $image->{IM} -> Draw (
+			primitive => "ellipse", 
+			points => "$centerx,$centery,$width,$height,0,360", 
+			stroke => $p{border_color}, 
+			fill=>$p{fill_color}, 
+			strokewidth=> $p{border_thickness}
+		);
 	}
 	else{
 		die __PACKAGE__,": Either specify 'color' or 'fill_color' && 'border_color'. Die.";
@@ -140,19 +162,19 @@ sub DrawText{
 	}
 	
 	my %most =(
-		left => $p{x_box_center},
-		right => $p{x_box_center},
-		top => $p{y_box_center},
-		bottom =>$p{y_box_center}
+		left 	=> $p{x_box_center},
+		right 	=> $p{x_box_center},
+		top 	=> $p{y_box_center},
+		bottom 	=>$p{y_box_center}
 	);
 	foreach (@corner){
-		$most{left} = $_->{x} if ($_->{x} < $most{left});
-		$most{right} = $_->{x} if ($_->{x} > $most{right});
-		$most{top} = $_->{y} if ($_->{y} < $most{top});
-		$most{bottom} = $_->{y} if ($_->{y} > $most{bottom});
+		$most{left} 	= $_->{x} if ($_->{x} < $most{left});
+		$most{right} 	= $_->{x} if ($_->{x} > $most{right});
+		$most{top} 		= $_->{y} if ($_->{y} < $most{top});
+		$most{bottom} 	= $_->{y} if ($_->{y} > $most{bottom});
 	}
 	
-	my $width = $most{right}-$most{left};
+	my $width  = $most{right}-$most{left};
 	my $height = $most{bottom}-$most{top};
 	
 	my $warning = "box '$p{box}' is to small for text: \"$p{text}\". Drawing anyway.\n (height: text: $height\tbox: ".$image -> {$p{box}}{height}."\n width: text: $width\tbox:".$image -> {$p{box}}{width}."\n" 
@@ -166,33 +188,33 @@ sub DrawText{
 	
 	#This only aligns the text relative to its "mini-box", which is positioned inside its box.
 	#There are 2 things that need to be distinguished: text inside its mini-box can be of any rotation (align means a direction relative to the text: center, right, left), while the mini-box itself can be positioned relative to the absolute direction of the whole picture: north, west, south etc.
-	if ($p{align} =~ /^Center$/){
-		$p{align} = 'Center';	#this is important because IM ignores this parameter unless the first character is uppercase and the others are lowercase..
-		$x = $p{x_box_center};
+	if ($p{align} 	=~ /^Center$/){
+		$p{align} 	= 'Center';	#this is important because IM ignores this parameter unless the first character is uppercase and the others are lowercase..
+		$x 			= $p{x_box_center};
 	}
-	elsif ($p{align} =~ /^Right$/i){
-		$p{align} = 'Right';
-		$x = $p{x_box_center} + $w/2;	#Aligns relative to centered text-box
+	elsif ($p{align}=~ /^Right$/i){
+		$p{align} 	= 'Right';
+		$x 			= $p{x_box_center} + $w/2;	#Aligns relative to centered text-box
 	}
-	elsif ($p{align} =~ /^Left$/i){
-		$p{align} = 'Left';
-		$x =$p{x_box_center} - $w/2;
+	elsif ($p{align}=~ /^Left$/i){
+		$p{align} 	= 'Left';
+		$x 			= $p{x_box_center} - $w/2;
 	}
 	($x, $y) = $image -> rotation ($x, $y, $p{x_box_center}, $p{y_box_center}, $p{rotate}) unless ($p{rotate} == 0);
 	#Now the text-mini-box is shifted to the desired edge(s) of the box. "Center" is the default, so nothing has to be done.
 	my $y_shift = 0;
 	my $x_shift = 0;
-	if ($p{position} =~ /North/i){
-		$y_shift = $image->{$p{box}}{top} - $most{top};	#All points need to be shifted vertically as many points as the topmost point of the (centered) text-box is bigger than the upper line of the box
+	if ($p{position} 	=~ /North/i){
+		$y_shift 		= $image->{$p{box}}{top} - $most{top};	#All points need to be shifted vertically as many points as the topmost point of the (centered) text-box is bigger than the upper line of the box
 	}
 	elsif ($p{position} =~ /South/i){
-		$y_shift = $image->{$p{box}}{bottom} - $most{bottom};
+		$y_shift 		= $image->{$p{box}}{bottom} - $most{bottom};
 	}	
-	if ($p{position} =~ /West/i){	#This if is on purpose.. It may be ok. to have a combination like NortWest, but not NorthSouth ;-)
-		$x_shift = $image->{$p{box}}{left} - $most{left};
+	if ($p{position} 	=~ /West/i){	#This if is on purpose.. It may be ok. to have a combination like NortWest, but not NorthSouth ;-)
+		$x_shift 		= $image->{$p{box}}{left} - $most{left};
 	}
 	elsif ($p{position} =~ /East/i){
-		$x_shift = $image->{$p{box}}{right} - $most{right};
+		$x_shift 		= $image->{$p{box}}{right} - $most{right};
 	}
 	if ($y_shift != 0){
 		$_->{y} += $y_shift foreach (@corner);
@@ -217,9 +239,9 @@ sub DrawText{
 
 
 sub Save{
-	my $image = shift;
-	my %p = @_;
-	$image -> print_message ("Save with ", __PACKAGE__, "\n");
-	$image->{IM} -> Write(filename=> $p{file});
+	my $image 	= shift;
+	my %p 		= @_;
+	$image 		-> print_message ("Save with ", __PACKAGE__, "\n");
+	$image		->{IM} -> Write(filename=> $p{file});
 }
 1;

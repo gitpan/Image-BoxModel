@@ -57,7 +57,7 @@ sub Chart{
 		scale_skip                  => 1,
 		scale_annotation_show       => 1,
 		scale_position              => 'left',
-		scale_annotation_background => $image->{background},
+		#~ scale_annotation_background => $image->{background},
 		scale_annotation_padding    => '10',
 		scale_annotation_skip		=> 1,
 		scale_ticks_length			=> 5,
@@ -67,7 +67,7 @@ sub Chart{
 		values_annotation_size       => 12,
 		values_annotation_show       => 1,
 		values_annotation_position   => 'bottom',
-		values_annotation_background => $image->{background},
+		#~ values_annotation_background => $image->{background},
 		values_annotation_padding    => '10',
 		values_annotation_rotate     => '-90',
 		values_annotation_skip		 => 1,
@@ -82,7 +82,7 @@ sub Chart{
 		background_color => 'grey90',
 		grid_color       => 'grey50',
 		bar_thickness    => ".75",	#how much breakfast the bars have had: 1 = touching each other, .5 = half as thick , >1 overlapping, etc. (bug! paints out of its box if >1!); 0.01 or something for debug (exact positioning..)
-		rotate           => 0,
+
 		draw_from_base   => 1,		#if the bars should be drawn from the base or not
 		base             => 0,		#"normally" one would like to draw the bars from zero upwards or downwards (negative values), but possibly someone wants to draw from 5 e.g.
 		
@@ -181,7 +181,7 @@ sub Chart{
 			width		=> $p{scale_annotation_padding}, 
 			height 		=> $p{scale_annotation_padding}, 
 			name		=> "$p{box}_scale_annotation_padding",
-			background 	=> $image ->{background}
+			#~ background 	=> $image ->{background}
 		) if $p{scale_annotation_padding};
 	}
 	
@@ -193,7 +193,7 @@ sub Chart{
 			width		=> $p{scale_ticks_length},
 			height		=> $p{scale_ticks_length},
 			name		=> "$p{box}_scale_ticks",
-			background	=> $image->{background}
+			#~ background	=> $image->{background}
 		);	
 	}
 	
@@ -215,7 +215,7 @@ sub Chart{
 			width      => $p{values_annotation_padding}, 
 			height     => $p{values_annotation_padding}, 
 			name       => "$p{box}_values_annotation_padding",
-			background => $image ->{background}
+			#~ background => $image ->{background}
 		) if $p{values_annotation_padding};
 	}
 	
@@ -227,7 +227,7 @@ sub Chart{
 			width		=> $p{values_ticks_length},
 			height		=> $p{values_ticks_length},
 			name		=> "$p{box}_values_ticks",
-			background	=> $image->{background}
+			#~ background	=> $image->{background}
 		);	
 	}
 	
@@ -240,7 +240,7 @@ sub Chart{
 			textsize 	=> $p{scale_annotation_size},
 			rotate 		=> $p{scale_annotation_rotate},
 			chart_box 	=> $p{box},
-			box 		=> 'scale_annotation',
+			box 		=> "$p{box}_scale_annotation",
 			box_border 	=> $p{box_border},
 			font		=> $p{font},
 			skip		=> $p{scale_annotation_skip},
@@ -280,7 +280,7 @@ sub Chart{
 			textsize 	=> $p{values_annotation_size},
 			rotate 		=> $p{values_annotation_rotate},
 			chart_box 	=> $p{box},
-			box 		=> 'values_annotation',
+			box 		=> "$p{box}_values_annotation",
 			box_border 	=> $p{box_border},
 			orientation => 'horizontal',
 			font		=> $p{font},
@@ -321,8 +321,8 @@ sub Chart{
 			#left border of "reserved" space for bars / points etc. of given dataset
 			
 			my $x_leftmost = where_between(
-				pos_min => $image->{$p{box}}{left} - $p{box_border},
-				pos_max => $image->{$p{box}}{right} + $p{box_border},
+				pos_min => $image->{$p{box}}{left}  + $p{box_border},
+				pos_max => $image->{$p{box}}{right} - $p{box_border},
 				val_min => 0,
 				val_max => $max_values,
 				val     => $number_of_data_element +.5 # half a step inside -> middle of the space of this value
@@ -330,8 +330,8 @@ sub Chart{
 			);
 			
 			my $x_rightmost = where_between(
-				pos_min => $image->{$p{box}}{left} - $p{box_border},
-				pos_max => $image->{$p{box}}{right} + $p{box_border},
+				pos_min => $image->{$p{box}}{left}  + $p{box_border},
+				pos_max => $image->{$p{box}}{right} - $p{box_border},
 				val_min => 0,
 				val_max => $max_values,
 				val     => $number_of_data_element +.5 + $p{bar_thickness} / 2  
@@ -414,14 +414,6 @@ sub Chart{
 				}
 				elsif ($p{style} =~ /point/i){
 					
-					#~ $y2 = where_between (
-						#~ pos_min => $image->{$p{box}}{bottom} - $p{box_border},
-						#~ pos_max => $image->{$p{box}}{top} + $p{box_border},
-						#~ val_min => $p{lowest},
-						#~ val_max => $p{highest},
-						#~ val     => $datasets[$_][$number_of_data_element] + 1
-					#~ );
-					
 					$image -> DrawCircle (
 						top 	=> $y1 + ($p{thickness}) / 2, 		
 						bottom 	=> $y1 - ($p{thickness}) / 2, 
@@ -434,13 +426,20 @@ sub Chart{
 				}
 				elsif ($p{style} =~ /line/i){ 	# just push all coordinates into @coordinates and draw afterwards.
 												# This might perhaps be a good idea for all styles..
-					$coordinates[$_][$number_of_data_element]{x} = $x1+ ($x2 - $x1)/2;
-					$coordinates[$_][$number_of_data_element]{y} = $y1;
+												
+					if (exists $p{offset} and defined $p{offset} and $p{offset}){
+						$coordinates[$_][$number_of_data_element]{x} = $x1         + ($x2 		   - $x1		) / 2;
+					}
+					else{
+						$coordinates[$_][$number_of_data_element]{x} = $x_leftmost + ($x_rightmost - $x_leftmost) / 2;
+					}
+						$coordinates[$_][$number_of_data_element]{y} = $y1;
 				}
 				else {
 					print "Sorry. Style $p{style} is (still) unimplemented.\n";
 				}
 			}
+			
 			if ($p{style} =~ /line/i){
 				foreach my $dataset (0 .. scalar(@coordinates)-1){
 					
@@ -475,7 +474,7 @@ sub Chart{
 		print "horizontal $p{style}s unimplemented. sorry";
 	}
 	else{
-		die "Unknown orientation $p{orientation}. Should be 'horizontal' or 'vertical'";
+		die "Unknown orientation $p{orientation}. Should be 'horizontal' or 'vertical' where only vertical is implemented so far";
 	}
 	
 	return;
@@ -513,15 +512,15 @@ sub PrintScale{
 		
 			$y2 = $y1 + $h;
 						
-			$x1 = int ($image->{"$p{chart_box}_$p{box}"}{right}-$w);	#bad: assumes align = right	
-			$x2 =      $image->{"$p{chart_box}_$p{box}"}{right};		
+			$x1 = int ($image->{$p{box}}{right}-$w);	#bad: assumes align = right	
+			$x2 =      $image->{$p{box}}{right};		
 
 		}
 		elsif ($p{orientation} =~ /horizontal/i){
 			
 			$x1 = where_between(	# fix this. Only works on vertical charts. Then this is values_annotation. What if horizontal is the scale?!
-				pos_min => $image->{$p{chart_box}}{left} - $p{box_border},
-				pos_max => $image->{$p{chart_box}}{right} + $p{box_border},
+				pos_min => $image->{$p{chart_box}}{left} + $p{box_border},
+				pos_max => $image->{$p{chart_box}}{right} - $p{box_border},
 				val_min => 0,
 				val_max => scalar(@{$p{array}}),
 				val     => $c+.5 # half a step inside
@@ -529,8 +528,8 @@ sub PrintScale{
 			
 			$x2 = $x1 + $w;
 			
-			$y2 = int ($image->{"$p{chart_box}_$p{box}"}{top}+$h);	#bad: assumes align = right); 
-			$y1 =      $image->{"$p{chart_box}_$p{box}"}{top};
+			$y2 = int ($image->{$p{box}}{top}+$h);	#bad: assumes align = right); 
+			$y1 =      $image->{$p{box}}{top};
 		}
 		else{
 			Carp::confess ("bad parameter orientation '$p{orientation}'");
@@ -551,7 +550,7 @@ sub DrawGrid{
 
 			my $y = where_between (
 				pos_min => $image->{$p{box}}{bottom} - $p{box_border},
-				pos_max => $image->{$p{box}}{top} + $p{box_border},
+				pos_max => $image->{$p{box}}{top} 	 + $p{box_border},
 				val_min => $p{lowest},
 				val_max => $p{highest},
 				val     => $_
@@ -578,28 +577,20 @@ sub DrawTicks{
 	my $image = shift;
 	my %p = @_;
 	
-	#~ $image -> DrawRectangle(
-		#~ top	=> $image->{$p{box_to_draw_on}}{top},
-		#~ bottom => $image->{$p{box_to_draw_on}}{bottom},
-		#~ right	=> $image->{$p{box_to_draw_on}}{right},
-		#~ left => $image->{$p{box_to_draw_on}}{left},
-		#~ color => 'orange',
-		#~ );
-	
 	if ($p{orientation} =~ /vertical/){	
 		foreach (@{$p{array}}){
 			
 			my $y = where_between (
 				pos_min => $image->{$p{box_to_measure_from}}{bottom} - $p{box_border},
-				pos_max => $image->{$p{box_to_measure_from}}{top} + $p{box_border},
+				pos_max => $image->{$p{box_to_measure_from}}{top} 	 + $p{box_border},
 				val_min => $p{lowest},
 				val_max => $p{highest},
 				val		=> $_
 			);
 			
 			$image -> DrawRectangle (
-				top 	=> $y-($p{thickness}-1)/2, # see above, DrawGrid
-				bottom 	=> $y+ ($p{thickness}-1)/2, 
+				top 	=> $y - ($p{thickness}-1)/2, # see above, DrawGrid
+				bottom 	=> $y + ($p{thickness}-1)/2, 
 				right 	=> $image -> {$p{box_to_draw_on}}{right},
 				left 	=> $image -> {$p{box_to_draw_on}}{left},
 				color 	=> 'black' # to be dony by parameter
@@ -609,8 +600,8 @@ sub DrawTicks{
 	else{
 		for my $c (0 .. scalar(@{$p{array}})-1){
 			my $x = where_between (
-				pos_min => $image->{$p{box_to_measure_from}}{left} - $p{box_border},
-				pos_max => $image->{$p{box_to_measure_from}}{right} + $p{box_border},
+				pos_min => $image->{$p{box_to_measure_from}}{left}  + $p{box_border},
+				pos_max => $image->{$p{box_to_measure_from}}{right} - $p{box_border},
 				val_min => $p{lowest},
 				val_max => $p{highest},
 				val		=> $c +.5 # middle of the bar / point / whatever is in the middle between 2 borders..
@@ -631,31 +622,31 @@ sub DrawTicks{
 
  $image -> Legend(
 	#mandatory:
-	font => 		(path to font file),
-	name => 		(name of box in which the legend lives)
+	font 			=> (path to font file),
+	name 			=> (name of box in which the legend lives)
 	values_annotations => (name of your datasets)
 	
 	#optional (dafaults preset):
-	textsize => 	[number],
-	rotate => 		[number], 
-	colors => 		(color names of datasets), 	#nice: 'colors => DefaultColors()' sets default colors
-	position => 	['right'|'left],
-	orientation => 	'vertical',					#horizontal is unimplemented so far
-	resize => 		(name of box to be resized),
-	background => 	(color),
+	textsize 		=> [number],
+	rotate 			=> [number], 
+	colors 			=> (color names of datasets), 	#nice: 'colors => DefaultColors()' sets default colors
+	position 		=> ['right'|'left],
+	orientation 	=> 'vertical',					#horizontal is unimplemented so far
+	resize 			=> (name of box to be resized),
+	background 		=> (color),
 	
-	padding_left => [number],
-	padding_right =>[number],
-	padding_top => 	[number],
-	padding_bottom =>[number],
+	padding_left 	=> [number],
+	padding_right 	=> [number],
+	padding_top 	=> [number],
+	padding_bottom 	=> [number],
 	
-	spacing_left => [number],
-	spacing_top => 	[number],
-	spacing_right =>[number],
-	spacing_bottom => [number],
+	spacing_left 	=> [number],
+	spacing_top 	=> [number],
+	spacing_right 	=> [number],
+	spacing_bottom 	=> [number],
 	
-	border => 		[number],
-	border_color => (color),
+	border 			=> [number],
+	border_color 	=> (color),
  );
 
 Draw Legend. 
@@ -665,26 +656,26 @@ Draw Legend.
 sub Legend{
 	my $image = shift;
 	my %p = (
-		textsize => 12,
-		rotate => 0, 
-		colors => DefaultColors(),
-		position => 'right',
-		orientation => 'vertical',
-		resize => 'free',
-		background => $image->{background},
+		textsize 		=> 12,
+		rotate 			=> 0, 
+		colors 			=> DefaultColors(),
+		position 		=> 'right',
+		orientation 	=> 'vertical',
+		resize 			=> 'free',
+		background 		=> $image->{background},
 		
-		padding_left => 10,
-		padding_right => 10,
-		padding_top => 10,
-		padding_bottom => 10,
+		padding_left 	=> 10,
+		padding_right 	=> 10,
+		padding_top 	=> 10,
+		padding_bottom 	=> 10,
 		
-		spacing_left => 10,
-		spacing_top => 10,
-		spacing_right => 10,
-		spacing_bottom => 10,
+		spacing_left 	=> 10,
+		spacing_top 	=> 10,
+		spacing_right 	=> 10,
+		spacing_bottom 	=> 10,
 		
-		border => 1,
-		border_color => 'black',
+		border 			=> 1,
+		border_color	=> 'black',
 		
 		@_
 	);
@@ -701,15 +692,15 @@ sub Legend{
 	my $square_size = int ($p{textsize} * .8);	#to be done by some intelligently set parameters later on..
 
 	my ($w, $h) = $image -> ArrayBox (resize => $p{name},
-		name => "$p{name}_text",
-		background => $p{background},
-		position => $p{position},
+		name 		=> "$p{name}_text",
+		background 	=> $p{background},
+		position 	=> $p{position},
 		orientation => $p{orientation},
-		values_ref => $p{values_ref},
-		textsize => $p{textsize},
-		rotate => $p{rotate},
-		font => $p{font},
-		no_box => 1
+		values_ref 	=> $p{values_ref},
+		textsize 	=> $p{textsize},
+		rotate 		=> $p{rotate},
+		font 		=> $p{font},
+		no_box 		=> 1
 	);
 	
 	#~ print "Width: $w, height: $h\n";
@@ -717,78 +708,76 @@ sub Legend{
 	#idea: have a big box into which the smaller boxes for legend etc go.
 	
 	$image -> Box (
-		name => "$p{name}",
-		width => $p{padding_left} + $p{border} + $p{spacing_left} + $square_size + $p{spacing_left} + $w + $p{spacing_right} + $p{border} + $p{padding_right}+6,
-		height => $p{padding_top} + $p{border} + $p{spacing_top} + $h + $p{spacing_bottom} + $p{border} + $p{padding_bottom}+4,
-		position => $p{position},
-		resize => $p{resize},
+		name 		=> "$p{name}",
+		width 		=> $p{padding_left} + $p{border} + $p{spacing_left} + $square_size + $p{spacing_left} + $w + $p{spacing_right} + $p{border} + $p{padding_right}+6,
+		height 		=> $p{padding_top} + $p{border} + $p{spacing_top} + $h + $p{spacing_bottom} + $p{border} + $p{padding_bottom}+4,
+		position 	=> $p{position},
+		resize 		=> $p{resize},
 	);
 	
 	#~ print "Top: $image->{$p{name}}{top}, bottom: $image->{$p{name}}{bottom}\n";
 	
 	foreach ('left', 'right', 'top', 'bottom'){	#padding: 4 little (big) boxes outside the border, one at each corner
 		$image -> Box (
-			resize => "$p{name}",
-			width => $p{"padding_$_"},
-			height => $p{"padding_$_"},
-			name => "$p{name}_padding_$_",
-			position => "$_",
-			#~ background => 'orange', #debug
+			resize 	=> "$p{name}",
+			width 	=> $p{"padding_$_"},
+			height 	=> $p{"padding_$_"},
+			name 	=> "$p{name}_padding_$_",
+			position=> "$_",
 		);
 	}
 	
 	foreach ('left', 'right', 'top', 'bottom'){	#spacing: 4 little (big) boxes inside the border, one at each corner
 		$image -> Box (
-			resize => "$p{name}",
-			width => $p{"spacing_$_"} + $p{border},	#to reserve space for the border as well..
-			height => $p{"spacing_$_"} + $p{border},
-			name => "$p{name}_spacing_$_",
-			position => "$_",
-			#~ background => 'blue', #debug
+			resize 	=> "$p{name}",
+			width 	=> $p{"spacing_$_"} + $p{border},	#to reserve space for the border as well..
+			height 	=> $p{"spacing_$_"} + $p{border},
+			name 	=> "$p{name}_spacing_$_",
+			position=> "$_",
 		);
 	}
 	
 	$image -> ArrayBox (		#reserve space for the text
-		resize => $p{name},
-		name => "$p{name}_text",
-		background => $p{background},
-		position => 'right',	# Text is *always" right of little squares, wherever the legend is put.
+		resize 		=> $p{name},
+		name 		=> "$p{name}_text",
+		background 	=> $p{background},
+		position 	=> 'right',	# Text is *always" right of little squares, wherever the legend is put.
 		orientation => $p{orientation},
-		values_ref => $p{values_ref},
-		textsize => $p{textsize},
-		rotate => $p{rotate},
-		font => $p{font},
-		#~ background => 'red'	#debug
+		values_ref 	=> $p{values_ref},
+		textsize 	=> $p{textsize},
+		rotate 		=> $p{rotate},
+		font 		=> $p{font},
 	);
 	
 	$image -> Box(			#some spacing between text & squares
-		resize => $p{name},
-		name=> "$p{name}_spacing_text_squares",
-		width => $p{spacing_left},
-		position => 'right'
-		#~ ,background => 'blue'
+		resize 		=> $p{name},
+		name		=> "$p{name}_spacing_text_squares",
+		width 		=> $p{spacing_left},
+		position 	=> 'right'
 	);
 	
 	$image -> Box(				#box for squares
-		resize => $p{name},
-		name=> "$p{name}_squares",
-		width => $square_size,
-		height => $square_size,
-		position => $p{position},
-		#~ background => 'green'
+		resize 		=> $p{name},
+		name		=> "$p{name}_squares",
+		width 		=> $square_size,
+		height 		=> $square_size,
+		position 	=> $p{position},
 	);
 	
+	
 	$image -> DrawRectangle(		#a rectangle as border of the legend
-		#~ top => $image	->{"$p{name}_spacing_top"}{top}, 
-		top => 			$image ->{"$p{name}_spacing_top"}{top},
-		#~ bottom => $image->{"$p{name}_spacing_top"}{top}+ $p{border} * 2 + $p{spacing_top} + $h + $p{spacing_bottom}, # Calculate space needed. buggy so far
-		bottom => 		$image ->{"$p{name}_text"}{bottom},
-		left => 		$image->{"$p{name}_spacing_left"}{left}, 
-		right =>		$image->{"$p{name}_spacing_right"}{right},  
-		fill_color => 	$p{background}, 
-		border_color => $p{border_color},
+		top 		=> $image ->{"$p{name}_spacing_top"}{top},
+		bottom 		=> $image->{"$p{name}_spacing_top"}{top}+ $p{border} * 2 + $h+ $p{spacing_top} + $p{spacing_bottom}, # Calculate space needed. 
+		left 		=> $image->{"$p{name}_spacing_left"}{left}, 
+		right 		=> $image->{"$p{name}_spacing_right"}{right},  
+		fill_color 	=> $p{background}, 
+		border_color=> $p{border_color},
 		border_thickness => $p{border}
 	)if ($p{border});
+	
+	#~ print $image->{"$p{name}_spacing_top"}{top}, "\t", $p{border} * 2 ,"\t", $h, "\t", $p{spacing_top} ,"\t", $p{spacing_bottom},"\n";
+	#~ print $image->{"$p{name}_spacing_top"}{top}+ $p{border} * 2 + $h+ $p{spacing_top} + $p{spacing_bottom}, "\n";
+	
 	
 	
 	
@@ -798,22 +787,22 @@ sub Legend{
 		#~ #print @{$p{colors}}[$_], "\t", @{$p{values_ref}}[$_], "\n";
 		
 		my ($width, $height) = $image -> GetTextSize(
-			text => @{$p{values_ref}}[$_],
-			textsize => $p{textsize},
-			rotate => $p{rotate},
-			font => $p{font}
+			text 		=> @{$p{values_ref}}[$_],
+			textsize 	=> $p{textsize},
+			rotate	 	=> $p{rotate},
+			font 		=> $p{font}
 		);
 		
 		#there will be a distinction between vertically and horizontally drawn legends as soon as this is implemented
 		
 		my $e = $image -> Annotate(
-			resize =>"$p{name}_text",
-			text => @{$p{values_ref}}[$_], 
-			textsize => $p{textsize},
-			rotate => $p{rotate},
-			align => 'left', 
-			text_position => 'west',
-			font => $p{font},
+			resize 		=>"$p{name}_text",
+			text 		=> @{$p{values_ref}}[$_], 
+			textsize 	=> $p{textsize},
+			rotate 		=> $p{rotate},
+			align 		=> 'left', 
+			text_position=> 'west',
+			font 		=> $p{font},
 			
 		);
 	
@@ -821,14 +810,14 @@ sub Legend{
 		my $center_of_minibox = ($image->{$e}{top} + $image->{$e}{bottom}) / 2;
 		
 		$image -> DrawRectangle(
-			top => $center_of_minibox - $square_size / 2, 
-			bottom => $center_of_minibox + $square_size / 2, 
-			#~ #top => $image->{$e}{top},
-			#~ #bottom => $image->{$e}{bottom},
-			left => $image->{"$p{name}_squares"}{left}, 
-			right => $image->{"$p{name}_squares"}{right},  
-			fill_color => @{$p{colors}}[$_], 
-			border_color => 'black'
+			top 		=> $center_of_minibox - $square_size / 2, 
+			bottom 		=> $center_of_minibox + $square_size / 2, 
+			#~ #top 	=> $image->{$e}{top},
+			#~ #bottom 	=> $image->{$e}{bottom},
+			left 		=> $image->{"$p{name}_squares"}{left}, 
+			right		=> $image->{"$p{name}_squares"}{right},  
+			fill_color 	=> @{$p{colors}}[$_], 
+			border_color=> 'black'
 		);
 	}
 }

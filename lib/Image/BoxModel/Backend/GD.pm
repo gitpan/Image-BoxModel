@@ -31,11 +31,11 @@ sub DrawLine{ 	# draws a filled, polygon, really..
 		my ($x2_2, $y2_2) = $image -> rotation ($p{x2}- $p{thickness}/2, $p{y2}, $p{x2}, $p{y2}, -$angle); 
 		
 		my $poly = new GD::Polygon;
-		$poly->addPt($x1_1, $y1_1);
-		$poly->addPt($x1_2, $y1_2);
+		$poly	-> addPt($x1_1, $y1_1);
+		$poly	-> addPt($x1_2, $y1_2);
 		
-		$poly->addPt($x2_2, $y2_2);
-		$poly->addPt($x2_1, $y2_1);
+		$poly	-> addPt($x2_2, $y2_2);
+		$poly	-> addPt($x2_1, $y2_1);
 		
 		print $image->{GD} -> filledPolygon($poly,$image->Colors(color => $p{color}));
 	}
@@ -66,11 +66,11 @@ sub DrawRectangle{ # used for horizontal & vertical lines, too
 	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: rectangle with border..
 		print $image->{GD} -> filledRectangle($p{left},$p{top},$p{right},$p{bottom},$image->Colors(color => $p{border_color}));
 		print $image->{GD} -> filledRectangle(	#the line above draws simply a filled rectangle in border-color
-			$p{left}+$p{border_thickness},	#then a second rectangle set inside [border_thickness] pixels is drawn onto it.
-			$p{top}+$p{border_thickness},
-			$p{right}-$p{border_thickness},
-			$p{bottom}-$p{border_thickness},
-			$image->Colors(color => $p{fill_color})
+			$p{left}	+ $p{border_thickness},	#then a second rectangle set inside [border_thickness] pixels is drawn onto it.
+			$p{top}  	+ $p{border_thickness},
+			$p{right}	- $p{border_thickness},
+			$p{bottom}	- $p{border_thickness},
+			$image		->Colors(color => $p{fill_color})
 		) unless ($p{border_thickness} >= ($p{right}-$p{left}) or $p{border_thickness} >= ($p{bottom}-$p{top}));
 	}
 	else{
@@ -81,14 +81,14 @@ sub DrawRectangle{ # used for horizontal & vertical lines, too
 }
 
 sub DrawCircle{ # draws an ellipse, really.
-	my $image = shift;
-	my %p = (
+	my $image 	= shift;
+	my %p 		= (
 		border_thickness => 1,
 		@_
 	);
 	
-	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	#right border *must* be right, left must be left. Otherwise, GD won't draw.
-	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	#same for bottom & top.
+	($p{left}, $p{right}) = ($p{right}, $p{left}) if ($p{right} < $p{left});	# right border *must* be right, left must be left. Otherwise, GD won't draw.
+	($p{top}, $p{bottom}) = ($p{bottom}, $p{top}) if ($p{bottom}< $p{top}); 	# same for bottom & top.
 	
 	foreach ('left', 'right', 'bottom', 'top'){
 		die __PACKAGE__, ": Mandatory parameter $_ missing" unless (exists $p{$_} and defined $p{$_});
@@ -97,10 +97,10 @@ sub DrawCircle{ # draws an ellipse, really.
 	my $centerx = ($p{left} + $p{right}) / 2;
 	my $centery = ($p{top} + $p{bottom}) / 2;
 	
-	if (exists $p{color}){	#this is the first invocation: a simple circle without border..
+	if (exists $p{color}){	# this is the first invocation: a simple circle without border..
 		print $image->{GD} -> filledEllipse ($centerx,$centery,$p{right}-$p{left},$p{bottom}-$p{top},$image->Colors(color => $p{color}));	#Colors checks if color is present or adds it or rants
 	}
-	elsif (exists $p{fill_color} and exists $p{border_color}){	#and here the 2nd: circle with border..
+	elsif (exists $p{fill_color} and exists $p{border_color}){	# and here the 2nd: circle with border..
 		print $image->{GD} -> filledEllipse(
 			$centerx,
 			$centery,
@@ -125,8 +125,8 @@ sub DrawCircle{ # draws an ellipse, really.
 }
 
 sub TextSize{
-	my $image = shift;
-	my %p = @_;	# shouln't it fall back to a standard font?
+	my $image 	= shift;
+	my %p 		= @_;	# shouln't it fall back to a standard font?
 	
 	#~ print "GD:TextSize: font: $p{font}";
 	
@@ -136,11 +136,12 @@ sub TextSize{
 }
 
 sub DrawText{
-	my $image = shift;
-	my %p = (
-		font => './FreeSans.ttf', # fix this. It should fall back to a font stored here in the lib somewhere.
+	my $image 	= shift;
+	my %p 		= (
 		@_
 	);
+	
+	$p{font} = './'.$p{font} unless ($p{font} =~ /\//);
 	
 	$image -> print_message ("DrawText with ",__PACKAGE__,"::DrawText\n");
 	my ($capital, $descender, $line_spacing, @corner) = gd_text_size($p{font}, $p{textsize}, $p{text});
@@ -155,23 +156,35 @@ sub DrawText{
 	my $x_rotation_center = $p{x_box_center};
 	my $y_rotation_center = $p{y_box_center};
 
-	if ($p{position} =~ /North/i){
+	if ($p{position} 	   =~ /North/i){
 		$y_rotation_center = $image->{$p{box}}{top} + $height / 2;
 	}
-	elsif ($p{position} =~ /South/i){
+	elsif ($p{position}    =~ /South/i){
 		$y_rotation_center = $image->{$p{box}}{bottom} - $height / 2;
 	}
-	if ($p{position} =~ /West/i){	#This if is on purpose.. It may be ok. to have a combination like NortWest, but not NorthSouth ;-)
+	if ($p{position}       =~ /West/i){	#This if is on purpose.. It may be ok. to have a combination like NortWest, but not NorthSouth ;-)
 		$x_rotation_center = $image->{$p{box}}{left} + $width / 2;
 	}
-	elsif ($p{position} =~ /East/i){
+	elsif ($p{position}    =~ /East/i){
 		$x_rotation_center = $image->{$p{box}}{right} - $width / 2;
 	}
 
 	#draw a small rectangle if desired
 	if ($p{background}){
-		$image->{GD} -> filledRectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->Colors(color =>$p{background}));
-		$image->{GD} -> rectangle($x_rotation_center-$width/2,$y_rotation_center-$height/2,$x_rotation_center+$width/2,$y_rotation_center+$height/2,$image->Colors(color =>'black'));
+		$image->{GD} -> filledRectangle(
+			$x_rotation_center-$width/2,
+			$y_rotation_center-$height/2,
+			$x_rotation_center+$width/2,
+			$y_rotation_center+$height/2,
+			$image->Colors(color =>$p{background})
+		);
+		$image->{GD} -> rectangle(
+			$x_rotation_center-$width/2,
+			$y_rotation_center-$height/2,
+			$x_rotation_center+$width/2,
+			$y_rotation_center+$height/2,
+			$image->Colors(color =>'black')
+		);
 	}
 
 	#show rotation centre; debug only
@@ -187,9 +200,11 @@ sub DrawText{
 		
 		my $y = $y_rotation_center - $unrotated_height / 2 + $capital * $e + $line_spacing * ($e-1); #Height of capital Ä * lines + $spacing * (lines-1)
 		
+		#~ print "FONT: $p{font}\nSIZE: $p{textsize}\nLINE:$line\n";
+		
 		my @line_bounds = GD::Image ->stringFT(0,$p{font},$p{textsize},0,0,0,$line, {resolution=>"72,72"});
 		my $x;
-		if ($p{align} =~ /^center$/i){
+		if ($p{align} 	 =~ /^center$/i){
 			$x = $x_rotation_center -  (($line_bounds[2] - $line_bounds[0]) / 2);	
 		}
 		elsif ($p{align} =~ /^right$/i){
@@ -215,8 +230,8 @@ sub DrawText{
 }
 
 sub Colors{		#checks if color is allredy added to the object and adds it if not. dies on malformed or unknown colors.
-	my $image = shift;
-	my %p = @_;
+	my $image 	= shift;
+	my %p 		= @_;
 	if ($p{color} =~ /^#/){	#this is an html-style color #ff6565 e.g.
 		die "invalid color $p{color}" unless ($p{color} =~ /^#[\da-f]{6}?$/i);	#matches an # and then exactly 6 digits or a-f
 		my $allready_present = 0;
@@ -273,11 +288,12 @@ sub gd_text_size{
 	no warnings;
 	#~ print "gd_text_size: text: $text font: $font\n";
 	
-	$font = './FreeSans.ttf' unless ($font and -f $font);
+	$font = './'.$font unless ($font =~ /\//);
+	
 	my @corner;
 	
 	my @bounds = GD::Image->stringFT(0,$font,$size,0,0,0,"Ä", {resolution=>"72,72"});
-	die "$@ $font" if $@;
+	confess "$@ $font" if $@;
 	my $capital = $bounds[1]- $bounds[7];
 
 	@bounds = GD::Image->stringFT(0,$font,$size,0,0,0,"Äg", {resolution=>"72,72"});
@@ -295,7 +311,7 @@ sub gd_text_size{
 	my @lines = split (/\n/, $text);
 
 	#define y-values according to test-string. This is not perfectly equal to the findings of the freetype-engine, but gives satisfiable, reliable results.
-	$corner[0]{y} =0 - $capital;
+	$corner[0]{y} = 0 - $capital;
 	$corner[1]{y} = $corner[0]{y};
 
 	$corner[2]{y} = $corner[1]{y} + $capital * scalar(@lines) + $line_spacing * (scalar(@lines)-1) + $descender;	#baseline (=height of capital Ä) * number_of_lines + line_spacing * (number_of_lines-1) + descender

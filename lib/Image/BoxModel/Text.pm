@@ -28,30 +28,30 @@ Anyway, if you have a good reason, feel free to use the methods from ::Lowlevel 
 =head3 Annotate
 
  $name_of_box = $image -> Annotate (
-	text => $text 					#mandatory
-	name => $name_of_box
-	position => [top|bottom|right|left],
-	textsize => $size,
-	font => $font,					#mandatory if using GD without fontconfig!
-	rotate => [in degrees, may be negative as well],
-	align => [Center|Left|Right],			#align is how multiline-text is aligned
-	text_position => [Center			#position is how text will be positioned inside its box
-			NorthWest|
-			North|
-			NorthEast|
-			West|
-			SoutEast|
-			South|
-			SouthWest|
-			West],
-	background => (color),
-	padding_right => [number],
-	padding_left => [number],
-	padding_top => [number],
-	padding_bottom=> [number],
+	text 			=> $text 					# mandatory
+	name 			=> $name_of_box
+	position 		=> [top|bottom|right|left],
+	textsize 		=> $size,
+	font 			=> $font,					
+	rotate 			=> [in degrees, may be negative as well],
+	align	 		=> [Center|Left|Right],		# align is how multiline-text is aligned
+	text_position 	=> [Center					# position is how text will be positioned inside its box
+						NorthWest|
+						North|
+						NorthEast|
+						West|
+						SoutEast|
+						South|
+						SouthWest|
+						West],
+	background 		=> (color),
+	padding_right 	=> [number],
+	padding_left 	=> [number],
+	padding_top 	=> [number],
+	padding_bottom	=> [number],
  )
 
-All parameters except "text" are preset with defaults. These are the first value above or generally "0" for numbers (except "20" for textsize), and "white" for colors.
+All parameters except "text" are preset with defaults. These are the first value above or generally "0" for numbers (except "12" for textsize), and "white" for colors.
 
 $name_of_box is a number, starting from 1.
 
@@ -64,19 +64,15 @@ sub Annotate{
 		textsize => 12,
 		rotate => 0,
 		align => "Center",
-		background => $image -> {background},
 		padding_right => 0,
 		padding_left => 0,
 		padding_top => 0,
 		padding_bottom => 0,
-		font => 'default',	#useles value, fontconfig and IM default to whatever, while GD without fontconfig produces errors.
 		color => 'black',
 		@_
 	);
 	
 	die __PACKAGE__, " Mandatory parameter 'text' missing. Die" unless (exists $p{text} and $p{text});
-	die __PACKAGE__, " Font $p{font} not found. Because you use GD and don't have fontconfig enabled, you need to specify a font file. Die" if ($image->{lib} eq "GD" and $image->{fontconfig} != 1 and !(-f $p{font}));
-	$p{font} = 'default' if ($image->{lib} eq 'IM' and !(-f $p{font})); 
 	
 	my $resize = $p{resize} || 'free';
 	
@@ -166,7 +162,6 @@ sub ArrayBox{
 	my $image = shift;
 	my %p = (
 		resize => 'free',
-		font => 'default',
 		@_
 	);
 	
@@ -219,11 +214,9 @@ sub ArrayBox{
 		}
 	}
 	
-	#~ print "height: $height, width: $width\n";
-	
 	# Box only needs width if positioned left or right. - $width is possibly too wide, which is no problem. So we set it = 1 usw.
 	$width = 1 if ($orientation eq 'horizontal');
-	$height= 1 if ($orientation eq 'vertical');
+	#~ $height= 1 if ($orientation eq 'vertical');
 		
 	unless (exists $p{no_box} and $p{no_box}){
 		$image -> Box(
@@ -236,6 +229,7 @@ sub ArrayBox{
 		);
 	}
 	
+	#~ print "In Text::ArrayBox: width: $width, height: $height\n";
 	return $width, $height;
 }
 

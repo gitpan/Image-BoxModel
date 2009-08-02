@@ -3,7 +3,7 @@ package Image::BoxModel;
 use 5.006000;
 use warnings;
 use strict;
-our $VERSION = '0.15';
+our $VERSION = '0.50';
 use Carp;
 
 use Image::BoxModel::Lowlevel;	#Lowlevel methods like boxes, text, graphic primitives

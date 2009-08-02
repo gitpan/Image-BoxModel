@@ -64,10 +64,19 @@ sub GetBoxSize{
 If you don't specify 'resize => $name_of_box_to_be_resized', the standard-box 'free' is chosen.
 
  $image -> Box (
-	position =>[left|right|top|bottom], 
-	width=> $x, 
-	height => $y, 
-	name => $name_of_new_box
+	position 		=>[left|right|top|bottom], 
+	width			=> $x, 
+	height 			=> $y, 
+	name 			=> $name_of_new_box,
+	
+	# You can either specify a background color, then the box will be filled with that color
+	background  	=> [color]		
+	
+	# or you can define a border color and a background color, then you will get a nice rectangle with border.
+	# if you omit border_thickness it defaults to 1
+	background 		=> [color],
+	border_color	=> [color], 
+	border_thickness =>[color]
  );
 
 =cut
@@ -84,20 +93,23 @@ sub Box{
 	return "$p{name} already exists. No box added" if (exists $image->{$p{name}});
 	croak __PACKAGE__,"::Box: Mandatory parameter position missing. Die." unless $p{position};
 	
-	foreach ('height', 'width'){
-		no warnings;
-		croak __PACKAGE__,"::Box: You tried to put $p{name} with the $_ of $p{$_} onto $p{resize} which is only ", $image->{$resize}{$_}, " in size." if ($p{$_}> $image->{$resize}{$_});
-	}
-	
 	#return if width or height is not specified. 
 	#(height wenn adding at top or bottom, width wen adding at left or right side.)
 	if ($p{position} eq "top" or $p{position} eq "bottom"){
-		return "Box: Please specify height > 0. No box added\n" unless (exists $p{height} and $p{height} > 0);
-		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{height}, available: $image->{$resize}{height})\n" if ($p{height} > $image->{$resize}{height});
+		
+		return "Box: Please specify height > 0. No box added\n" 
+			unless (exists $p{height} and $p{height} > 0);
+			
+		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{height}, available: $image->{$resize}{height})\n" 
+			if ($p{height} > $image->{$resize}{height});
 	}
 	elsif ($p{position} eq "left" or $p{position} eq "right"){
-		return "Box: Please specify width > 0. No box added\n" unless (exists $p{width} and $p{width} and $p{width} > 0);
-		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{width}, available: $image->{$resize}{width})\n" if ($p{width} > $image->{$resize}{width});
+		
+		return "Box: Please specify width > 0. No box added\n" 
+			unless (exists $p{width} and $p{width} and $p{width} > 0);
+			
+		return "Box: Not enough free space on $resize for $p{name}. No box added\n (requested space: $p{width}, available: $image->{$resize}{width})\n" 
+			if ($p{width} > $image->{$resize}{width});
 	}
 	
 	$image -> print_message ("Add Box \"$p{name}\" with ", __PACKAGE__,"\n");
@@ -106,55 +118,72 @@ sub Box{
 	$image->{$p{name}}={	#First we make the new box as big as the field which will be resized..
 		top		=> $image->{$resize}{top},
 		bottom	=> $image->{$resize}{bottom},
-		left		=> $image->{$resize}{left} ,
-		right		=> $image->{$resize}{right},
+		left	=> $image->{$resize}{left} ,
+		right	=> $image->{$resize}{right},
 	};	
 	
 	#.. then we overwrite as needed.
 	
-	$p{width} = ceil ($p{width}) if exists $p{width};
+	$p{width}  = ceil ($p{width})  if exists $p{width};
 	$p{height} = ceil ($p{height}) if exists $p{height};
 	
 	if ($p{position} eq "top"){
-		$image->{$p{name}}{bottom} = $image->{$resize}{top} + $p{height};	
+		$image->{$p{name}}{bottom} 	= $image->{$resize}{top} + $p{height};	
 		
 		#The top margin of the resized field is set to the bottom of the new box.
-		$image->{$resize}{top} = $image->{$p{name}}{bottom}+1;			
+		$image->{$resize}{top} 		= $image->{$p{name}}{bottom}+1;			
 	}																			
 	elsif ($p{position} eq "bottom"){
-		$image->{$p{name}}{top} = $image->{$resize}{bottom} - $p{height};
-		$image->{$resize}{bottom} = $image->{$p{name}}{top}-1;
+		$image->{$p{name}}{top} 	= $image->{$resize}{bottom} - $p{height};
+		$image->{$resize}{bottom} 	= $image->{$p{name}}{top}-1;
 	}
 	elsif ($p{position} eq "left"){
-		$image->{$p{name}}{right} = $image->{$resize}{left} + $p{width};
-		$image->{$resize}{left} = $image->{$p{name}}{right}+1;
+		$image->{$p{name}}{right} 	= $image->{$resize}{left} + $p{width};
+		$image->{$resize}{left} 	= $image->{$p{name}}{right}+1;
 	}
 	elsif ($p{position} eq "right"){
-		$image->{$p{name}}{left} = $image->{$resize}{right} - $p{width};
-		$image->{$resize}{right} = $image->{$p{name}}{left}-1;
+		$image->{$p{name}}{left} 	= $image->{$resize}{right} - $p{width};
+		$image->{$resize}{right} 	= $image->{$p{name}}{left}-1;
 	}
 	else {
 		return "Image::BoxModel::Lowlevel::Box: Position $p{position} unknown. No box added";
 		
 	}
 	
-	if ((exists $p{background}) && (defined $p{background})){
+	# if border_color and background are defined, draw a rectangle with border and fill it.
+	if (exists $p{border_color} and defined $p{border_color} 
+		and
+		exists $p{background}   and defined $p{background}
+		){
+			
+			$p{border_thickness} = 1 unless (exists $p{border_thickness} and defined $p{border_thickness} and $p{border_thickness} > 1);
+			
+			$image -> DrawRectangle(
+				left 			=> $image->{$p{name}}{left}, 
+				right 			=> $image->{$p{name}}{right}, 
+				top 			=> $image->{$p{name}}{top}, 
+				bottom 			=> $image->{$p{name}}{bottom}, 
+				fill_color 		=> $p{background},
+				border_color	=> $p{border_color}, 
+				border_thickness => $p{border_thickness}
+			);
+	}
+	# if there is only background, just fill the box with the color
+	elsif (exists $p{background} and defined $p{background}){
 		$image-> DrawRectangle(
-			left => $image->{$p{name}}{left}, 
-			right => $image->{$p{name}}{right}, 
-			top => $image->{$p{name}}{top}, 
-			bottom => $image->{$p{name}}{bottom}, 
-			color => $p{background}
+			left 	=> $image->{$p{name}}{left}, 
+			right 	=> $image->{$p{name}}{right}, 
+			top 	=> $image->{$p{name}}{top}, 
+			bottom 	=> $image->{$p{name}}{bottom}, 
+			color 	=> $p{background}
 		);
 	}
 	
-	$image->{$p{name}}{width} = $image->{$p{name}}{right} - $image->{$p{name}}{left};
-	$image->{$p{name}}{height} = $image->{$p{name}}{bottom} - $image->{$p{name}}{top};
+	$image->{$p{name}}{width} 	= $image->{$p{name}}{right}  - $image->{$p{name}}{left};
+	$image->{$p{name}}{height} 	= $image->{$p{name}}{bottom} - $image->{$p{name}}{top};
 	
-	$image->{$resize}{height} = $image->{$resize}{bottom} - $image->{$resize}{top};	#calculate these values for later use.. laziness
-	$image->{$resize}{width} = $image->{$resize}{right} - $image->{$resize}{left};
-	
-	#~ print "habe Box $p{name} erzeugt\n";
+	$image->{$resize}{height} 	= $image->{$resize}{bottom}  - $image->{$resize}{top};	#calculate these values for later use.. laziness
+	$image->{$resize}{width} 	= $image->{$resize}{right}   - $image->{$resize}{left};
 	
 	return;
 }
@@ -168,11 +197,11 @@ sub Box{
 To position a free-floating box wherever you want. There is virtually no error-checking, so perhaps better keep your hands off. ;-)
 
  $image -> FloatBox(
-	top =>$top, 
-	bottom=>$bottom, 
-	right=> $right, 
-	left=> $top, 
-	name=>"whatever_you_call_it", 
+	top 	=> $top, 
+	bottom	=> $bottom, 
+	right	=> $right, 
+	left	=> $top, 
+	name	=> "whatever_you_call_it", 
 	background =>[color]
  );
 
@@ -190,7 +219,7 @@ sub FloatBox{
 	$image -> print_message ("Add FloatBox \"$p{name}\" with ", __PACKAGE__,"\n");
 	
 	#shift right <-> left if left is more right than right ;-)
-	($image->{$p{name}}{right}, $image->{$p{name}}{left})      = ($image->{$p{name}}{left}, $image->{$p{name}}{right}) 
+	($image->{$p{name}}{right}, $image->{$p{name}}{left})   = ($image->{$p{name}}{left}, $image->{$p{name}}{right}) 
 		if ($image->{$p{name}}{left} > $image->{$p{name}}{right});
 	#same for bottom and top
 	($image->{$p{name}}{top}  , $image->{$p{name}}{bottom}) = ($image->{$p{name}}{bottom}  , $image->{$p{name}}{top}) 
@@ -199,15 +228,21 @@ sub FloatBox{
 	$image->{$p{name}}{$_} = int ($image->{$p{name}}{$_}) foreach ('top', 'left');		#only allow integer values
 	$image->{$p{name}}{$_} = ceil ($image->{$p{name}}{$_}) foreach ('right', 'bottom');
 	
-	my $top = $image->{$p{name}}{top};
-	my $bottom = $image->{$p{name}}{bottom};
-	my $left = $image->{$p{name}}{left};
-	my $right = $image->{$p{name}}{right};
+	my $top 	= $image->{$p{name}}{top};
+	my $bottom 	= $image->{$p{name}}{bottom};
+	my $left 	= $image->{$p{name}}{left};
+	my $right 	= $image->{$p{name}}{right};
 	if ((exists $p{background}) && (defined $p{background})){
-		$image-> DrawRectangle(left => $left, right => $right, top => $top, bottom => $bottom, color => $p{background});
+		$image	-> DrawRectangle(
+			left => $left, 
+			right => $right, 
+			top => $top, 
+			bottom => $bottom, 
+			color => $p{background}
+		);
 	}
 	
-	$image->{$p{name}}{width} = $image->{$p{name}}{right} - $image->{$p{name}}{left};
+	$image->{$p{name}}{width}  = $image->{$p{name}}{right} - $image->{$p{name}}{left};
 	$image->{$p{name}}{height} = $image->{$p{name}}{bottom} - $image->{$p{name}}{top};
 	
 	return
@@ -217,9 +252,9 @@ sub FloatBox{
 
 Get the boundig size of (rotated) text. Very useful to find out how big boxes need to be.
  ($width, $height) = $image -> GetTextSize(
-	text => "Your Text",
-	textsize => [number],
-	rotate => [in degrees, may be negative as well]
+	text 		=> "Your Text",
+	textsize 	=> [number],
+	rotate 		=> [in degrees, may be negative as well]
  );
 
 =cut
@@ -227,10 +262,11 @@ Get the boundig size of (rotated) text. Very useful to find out how big boxes ne
 sub GetTextSize{
 	my $image = shift;
 	my %p = (
-		rotate => 0,
-		font => 'default',
+		rotate 	=> 0,
 		@_
 	);
+	
+	$p{font} = default_font() unless (exists $p{font} and $p{font} and -f $p{font});
 	
 	#die if the mandatory parameters are missing
 	my $warning;
@@ -251,18 +287,18 @@ sub GetTextSize{
 	}
 	
 	my %most =(
-		left => 0,
-		right => 0,
-		top => 0,
-		bottom =>0
+		left 	=> 0,
+		right 	=> 0,
+		top 	=> 0,
+		bottom 	=>0
 	);
 	
 	#find the left-, right-, top- and bottommost values.
 	foreach (@corner){
-		$most{left} = $_->{x} if ($_->{x} < $most{left});
-		$most{right} = $_->{x} if ($_->{x} > $most{right});
-		$most{top} = $_->{y} if ($_->{y} < $most{top});
-		$most{bottom} = $_->{y} if ($_->{y} > $most{bottom});
+		$most{left}  	= $_->{x} if ($_->{x} < $most{left});
+		$most{right} 	= $_->{x} if ($_->{x} > $most{right});
+		$most{top}   	= $_->{y} if ($_->{y} < $most{top});
+		$most{bottom} 	= $_->{y} if ($_->{y} > $most{bottom});
 	}
 	return (ceil($most{right}- $most{left})), (ceil($most{bottom}-$most{top}));	#return width and height
 	#ceil to ensure that the a the text will surely and safely fit.. There were strange errors in ::Backend::GD with values equaling while being inequal at the same time! I don't unterstand this.
@@ -270,9 +306,13 @@ sub GetTextSize{
 
 =head3 BoxSplit
 
- $image => BoxSplit (box => "name_of_parent", orientation=> "[vertical|horizontal]", count => $number_of_little_boxes);
+ $image -> BoxSplit (
+	box => "name_of_parent", 
+	orientation=> "[vertical|horizontal]", 
+	number => $number_of_little_boxes),
+ );
 
-Splits a box into "count" small boxes. This can be useful if you want to have spreadsheet-style segmentation.
+Splits a box into "number" small boxes. This can be useful if you want to have spreadsheet-style segmentation.
 
 Naming of little boxes: parent_[number, counting from 0]
 
@@ -288,36 +328,36 @@ sub BoxSplit{
 	my $image = shift;
 	my %p = @_;
 	
-	#~ print "$_ -> $p{$_}\n" foreach keys %p;
-	
-	my $parent_size;	#because ::Box ignores the unused given dimension, we just set this to with or height of parent and feed it twice..
+	my $parent_size;	#because ::Box ignores the not used given dimension, we just set this to with or height of parent and feed it twice..
 	my $position;
 	if ($p{orientation} eq "vertical"){
-		$parent_size = $image -> {$p{box}}{height};
-		$position = "top";
+		$parent_size 	= $image -> {$p{box}}{height};
+		$position 		= "top";
 	}
 	elsif ($p{orientation} eq "horizontal"){
-		$parent_size = $image -> {$p{box}}{width};
-		$position = "left";
+		$parent_size 	= $image -> {$p{box}}{width};
+		$position 		= "left";
 	}
 	else{
 		die __PACKAGE__,": Wrong value of mandatory parameter 'orientation': $p{orientation}, should be [vertical|horizontal]. Die.";
 	}
 	
-	foreach (0.. $p{count}-1){	#baby-box No. 1 holds number 0..
-		my $baby_size = sprintf("%.0f", ($parent_size / ($p{count} - $_)));
-		print "baby-size: $baby_size\t baby-name: $p{box}_$_\n";
+	foreach (0.. $p{number}-1){	#baby-box No. 1 holds number 0..
+		my $baby_size = sprintf("%.0f", ($parent_size / ($p{number} - $_)));
+		#~ print "baby-size: $baby_size\t baby-name: $p{box}_$_\n";
 		
-		$parent_size -= $baby_size;
-		my $debug_color = "blue" if ($_ % 2 == 0);
-		$debug_color = "red" if ($_ % 2 != 0);
+		$parent_size   -= $baby_size;
+
 		$image -> Box (
-			resize => $p{box}, 
-			position =>$position, 
-			width=> $baby_size, 
-			height =>$baby_size, 
-			name=> "$p{box}_$_",
-			background => $debug_color
+			resize 		=> $p{box}, 
+			position 	=> $position, 
+			width		=> $baby_size-1, 
+			height 		=> $baby_size-1, 
+			name		=> "$p{box}_$_",
+			background  => $p{background_colors}[$_],
+			
+			border_color	=> $p{border_color}, 
+			border_thickness => $p{border_thickness}
 		);
 	}
 	return;	#nothing at the moment
@@ -336,23 +376,24 @@ But of course, if you need / want full control, use 'Text'.
 Put (rotated, antialized) text on a box. Takes a bunch of parameters, of which "text" and "textsize" are mandatory. 
 
  $image -> Text(
-	text => 	$text,
-	textsize => [number],
-	color=>	"black",				
-	font =>	[font-file]
-	rotate=>	[in degrees, may be negative as well],
-	box => 	"free",
-	align => 	[Left|Center|Right]",		#align is how multiline-text is aligned
-	position =>[Center				#position is how text will be positioned inside its box
-			NorthWest|
-			North|
-			NorthEast|
-			West|
-			SoutEast|
-			South|
-			SouthWest|
-			West],
-	background=> [color]				#rather for debugging
+	text 		=> $text,
+	textsize 	=> [number],
+	color		=> "black",				
+	font 		=> [font-file]
+	rotate		=> [in degrees, may be negative as well],
+	box 		=> "free",
+	align 		=> [Left|Center|Right]",		#align is how multiline-text is aligned
+	position 	=> [Center				#position is how text will be positioned inside its box
+					NorthWest|
+					North|
+					NorthEast|
+					West|
+					SoutEast|
+					South|
+					SouthWest|
+					West
+				   ],
+	background	=> [color]				#rather for debugging
  );
 
 =cut
@@ -360,14 +401,17 @@ Put (rotated, antialized) text on a box. Takes a bunch of parameters, of which "
 sub Text{
 	my $image = shift;
 	my %p = (
-		color=>"black",
-		rotate=>0,
-		box => "free",
-		rotate => 0,
-		align => "Center",
-		position => "Center",
+		color	=>"black",
+		rotate	=>0,
+		box		=> "free",
+		rotate 	=> 0,
+		align 	=> "Center",
+		position=> "Center",
 		@_
 	);
+	
+	$p{font} = default_font() unless (exists $p{font} and $p{font} and -f $p{font});
+	
 	my $warning;
 	foreach ("text", "textsize"){
 		$warning .= "Mandatory parameter \"$_\" missing. " unless (exists $p{$_});
@@ -461,6 +505,19 @@ Checks if verbose is on and then prints messages.
 sub print_message{
 	my $image = shift;
 	print @_ if $image->{verbose};
+}
+
+sub default_font{
+	my $package = __PACKAGE__;		# Gives Image::BoxModel::Lowlevel
+	$package =~ s/::/\//g;			# 		Image/BoxModel/Lowlevel
+									# Make default font: (path-to-lib)/Image/BoxModel/Backend/FreeSans.ttf
+	(my $default_font = $INC{"$package.pm"}) =~ s/Lowlevel\.pm/Backend\/FreeSans.ttf/;
+	if (-f $default_font){
+		return $default_font;
+	}
+	else{
+		die "Can't find default font. Please file bug report.";
+	}
 }
 
 
